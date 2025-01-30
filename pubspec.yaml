@@ -37,6 +37,8 @@ dependencies:
   amplify_flutter: ^2.6.0
   amplify_auth_cognito: ^2.6.0
   amplify_authenticator: ^2.3.2
+  permission_handler: ^11.3.1
+  agora_rtc_engine: ^6.5.0
 
 dev_dependencies:
   flutter_test:
@@ -62,6 +64,9 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   # assets:
+  assets:
+     - assets/profile_pic.jpg
+  #   - images/a_dot_ham.jpeg
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
