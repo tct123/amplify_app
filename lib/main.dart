@@ -4,8 +4,8 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_app/pages/call_page.dart';
 import 'package:flutter/material.dart';
 import 'amplify_outputs.dart';
-import 'package:amplify_app/pages/join_call_page.dart';
-import 'package:amplify_app/pages/waveform.dart';
+import 'package:amplify_api/amplify_api.dart';
+import 'package:amplify_app/models/ModelProvider.dart';
 
 Future<void> main() async {
   try {
@@ -27,7 +27,16 @@ Future<void> main() async {
 
 Future<void> _configureAmplify() async {
   try {
-    await Amplify.addPlugin(AmplifyAuthCognito());
+    await Amplify.addPlugins(
+      [
+        AmplifyAuthCognito(),
+        AmplifyAPI(
+          options: APIPluginOptions(
+            modelProvider: ModelProvider.instance,
+          ),
+        ),
+      ],
+    );
     await Amplify.configure(amplifyConfig);
     safePrint('Successfully configured Amplify');
   } on Exception catch (e) {
