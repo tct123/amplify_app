@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// [AppBar] action that shows a [Overlay] with log.
 class LogActionWidget extends StatefulWidget {
   /// Construct the [LogActionWidget]
-  const LogActionWidget({Key? key}) : super(key: key);
+  const LogActionWidget({super.key});
 
   @override
   _LogActionWidgetState createState() => _LogActionWidgetState();
@@ -92,7 +92,7 @@ class _LogActionWidgetState extends State<LogActionWidget> {
                 ),
               );
             });
-            Overlay.of(context)?.insert(_overlayEntry!);
+            Overlay.of(context).insert(_overlayEntry!);
           }
           _isOverlayShowed = !_isOverlayShowed;
           // setState(() {
@@ -110,10 +110,10 @@ class _LogActionWidgetState extends State<LogActionWidget> {
 class LogWidget extends StatefulWidget {
   /// Construct the [LogWidget]
   const LogWidget({
-    Key? key,
+    super.key,
     this.logSink,
     this.textStyle = const TextStyle(fontSize: 15, color: Colors.white),
-  }) : super(key: key);
+  });
 
   /// This [LogSink] is used to add log.
   final LogSink? logSink;

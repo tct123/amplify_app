@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 class CallPage extends StatefulWidget {
+  const CallPage({super.key});
+
   @override
   _CallPageState createState() => _CallPageState();
 }
@@ -73,18 +75,18 @@ class _CallPageState extends State<CallPage> {
             top: 40, // Adjust for padding
             right: 20,
             child: ElevatedButton(
+              style: ButtonStyle(
+    backgroundColor: WidgetStateProperty.all<Color>(Colors.red), // Background color
+    ),
+	      onPressed: () {
+		      Navigator.pop(context);
+	      },
               child: Text("Leave", style: TextStyle(
                 fontSize: 24,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
-            ),
-	      style: ButtonStyle(
-    backgroundColor: MaterialStateProperty.all<Color>(Colors.red), // Background color
-    ),
-	      onPressed: () {
-		      Navigator.pop(context);
-	      }),
+            )),
           ),
           // 5. Bottom Center Card
           Align(
