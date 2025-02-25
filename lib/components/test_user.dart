@@ -1,3 +1,4 @@
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_app/models/UserLocation.dart';
 import 'package:amplify_app/models/user.dart';
 import 'package:flutter/material.dart';
@@ -6,39 +7,68 @@ import 'package:amplify_api/amplify_api.dart';
 
 class TestUserButton extends StatelessWidget {
   const TestUserButton({super.key});
+Future<void> _createTestUser() async {
+  final currentUser = await Amplify.Auth.getCurrentUser();
+  // Ensure the auth session is fully loaded with tokens.
+  // Use userPools if we have a valid token; otherwise fall back to API key.
+final session = await Amplify.Auth.fetchAuthSession();
+final authType = session.isSignedIn
+    ? APIAuthorizationType.userPools
+    : APIAuthorizationType.apiKey;
+print(authType);  
+  final getUserRequest = ModelQueries.get(
+      User.classType, UserModelIdentifier(userId: currentUser.userId));
+  final getUserResponse =
+      await Amplify.API.query(request: getUserRequest).response;
+  final existingUser = getUserResponse.data;
 
-  Future<void> _createTestUser() async {
-    // Create a test user with no likes, matches or dislikes.
-    final currentUser = await Amplify.Auth.getCurrentUser();
-
-    final testUser = User(
-	    userId: currentUser.userId,
+  if (existingUser == null) {
+    final newUser = User(
+      userId: currentUser.userId,
       name: "Test User Woman",
       age: 25,
       gender: "Female",
       gender_preference: "Male",
       age_preference: "18, 25",
-      location: UserLocation(lat:37.7749, long: -122.4194), // Example: San Francisco coordinates
+      location: UserLocation(lat: 37.7749, long: -122.4194),
       radius: 10,
       pictures: const [],
       profile_picture: "",
-      // Relationships (likes, likedBy, etc.) are left unset to start with.
     );
 
-    try {
-      final request = ModelMutations.create<User>(testUser);
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        safePrint('Error creating user: ${response.errors}');
-      } else {
-        safePrint('Test user created successfully.');
-      }
-    } on ApiException catch (e) {
-      safePrint('API Exception while creating user: $e');
-    } catch (e) {
-      safePrint('Unexpected error: $e');
+    final createRequest =
+        ModelMutations.create<User>(newUser, authorizationMode: authType);
+    final createResponse =
+        await Amplify.API.mutate(request: createRequest).response;
+    if (createResponse.hasErrors) {
+      safePrint('Error creating user: ${createResponse.errors}');
+    } else {
+      safePrint('User created successfully.');
+    }
+  } else {
+    final updatedUser = existingUser.copyWith(
+      name: "Test User Woman",
+      age: 25,
+      gender: "Female",
+      gender_preference: "Male",
+      age_preference: "18, 25",
+      location: UserLocation(lat: 37.7749, long: -122.4194),
+      radius: 10,
+      pictures: const [],
+      profile_picture: "",
+    );
+    final updateRequest =
+        ModelMutations.update<User>(updatedUser, authorizationMode: authType);
+    final updateResponse =
+        await Amplify.API.mutate(request: updateRequest).response;
+    if (updateResponse.hasErrors) {
+      safePrint('Error updating user: ${updateResponse.errors}');
+    } else {
+      safePrint('User updated successfully.');
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

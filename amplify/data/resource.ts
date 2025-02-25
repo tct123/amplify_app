@@ -3,7 +3,7 @@ import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 const schema = a.schema({
   User: a.model({
     userId: a.id().required(),
-    name: a.string().required(),
+    name: a.string(),
     age: a.integer(),
     gender: a.string(),
     gender_preference: a.string(),
@@ -24,7 +24,7 @@ const schema = a.schema({
     dislikedBy: a.belongsTo('UserDislikes', 'userId'),
   })
   .identifier(['userId'])
-  .authorization(allow => [allow.publicApiKey()]),
+  .authorization(allow => [allow.authenticated()]),
 
   UserLikes: a.model({
     id: a.id().required(),
@@ -32,19 +32,19 @@ const schema = a.schema({
     user: a.belongsTo('User', 'id'),
     // The user being liked
     likedUsers: a.hasMany('User', 'userId'),
-  }).authorization(allow => [allow.publicApiKey()]),
+  }).authorization(allow => [allow.authenticated()]),
 
   UserMatches: a.model({
     id: a.id().required(),
     user: a.belongsTo('User', 'id'),
     userMatches: a.hasMany('User', 'userId'),
-  }).authorization(allow => [allow.publicApiKey()]),
+  }).authorization(allow => [allow.authenticated()]),
 
   UserDislikes: a.model({
     id: a.id().required(),
     user: a.belongsTo('User', 'id'),
     dislikedUsers: a.hasMany('User', 'userId'),
-  }).authorization(allow => [allow.publicApiKey()])
+  }).authorization(allow => [allow.authenticated()])
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -52,8 +52,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'apiKey',
-    apiKeyAuthorizationMode: { expiresInDays: 30 }
+    defaultAuthorizationMode: 'userPool',
   }
 });
 
