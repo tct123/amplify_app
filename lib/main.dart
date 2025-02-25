@@ -39,6 +39,9 @@ Future<void> _configureAmplify() async {
       ],
     );
     await Amplify.configure(amplifyConfig);
+    final currentUser = await Amplify.Auth.getCurrentUser();
+    print(currentUser.userId);
+
     safePrint('Successfully configured Amplify');
   } on Exception catch (e) {
     safePrint('Error configuring Amplify: $e');

@@ -6,7 +6,7 @@ const schema = a.schema({
     name: a.string().required(),
     age: a.integer(),
     gender: a.string(),
-    gender_preference: a.integer().array(),
+    gender_preference: a.string(),
     age_preference: a.integer().array(),
     location: a.customType({
       lat: a.float().required(),
