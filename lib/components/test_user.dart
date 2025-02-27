@@ -7,22 +7,36 @@ import 'package:amplify_api/amplify_api.dart';
 
 class TestUserButton extends StatelessWidget {
   const TestUserButton({super.key});
+
 Future<void> _createTestUser() async {
+  print('Starting _createTestUser');
+
+  // Get the current authenticated user.
   final currentUser = await Amplify.Auth.getCurrentUser();
-  // Ensure the auth session is fully loaded with tokens.
-  // Use userPools if we have a valid token; otherwise fall back to API key.
-final session = await Amplify.Auth.fetchAuthSession();
-final authType = session.isSignedIn
-    ? APIAuthorizationType.userPools
-    : APIAuthorizationType.apiKey;
-print(authType);  
+  print('Current user ID: ${currentUser.userId}');
+
+  // Fetch the auth session.
+  final session = await Amplify.Auth.fetchAuthSession();
+  print('Auth session fetched. isSignedIn: ${session.isSignedIn}');
+
+  // Determine authorization mode.
+  final authType = session.isSignedIn
+      ? APIAuthorizationType.userPools
+      : APIAuthorizationType.apiKey;
+  print('Using authorization mode: $authType');
+
+  // Attempt to retrieve the user from the backend.
   final getUserRequest = ModelQueries.get(
-      User.classType, UserModelIdentifier(userId: currentUser.userId));
-  final getUserResponse =
-      await Amplify.API.query(request: getUserRequest).response;
+    User.classType,
+    UserModelIdentifier(userId: currentUser.userId),
+  );
+  print('Sending getUserRequest for userId: ${currentUser.userId}');
+  final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
+  print('getUserResponse: ${getUserResponse.data}');
   final existingUser = getUserResponse.data;
 
   if (existingUser == null) {
+    print('No existing user found. Creating new user.');
     final newUser = User(
       userId: currentUser.userId,
       name: "Test User Woman",
@@ -35,17 +49,19 @@ print(authType);
       pictures: const [],
       profile_picture: "",
     );
+    print('New user object: $newUser');
 
-    final createRequest =
-        ModelMutations.create<User>(newUser, authorizationMode: authType);
-    final createResponse =
-        await Amplify.API.mutate(request: createRequest).response;
+    final createRequest = ModelMutations.create<User>(newUser);
+    print('Sending create request...');
+    final createResponse = await Amplify.API.mutate(request: createRequest).response;
+    print('Create response: ${createResponse.data}');
     if (createResponse.hasErrors) {
-      safePrint('Error creating user: ${createResponse.errors}');
+      print('Error creating user: ${createResponse.errors}');
     } else {
-      safePrint('User created successfully.');
+      print('User created successfully.');
     }
   } else {
+    print('Existing user found. Updating user.');
     final updatedUser = existingUser.copyWith(
       name: "Test User Woman",
       age: 25,
@@ -57,16 +73,20 @@ print(authType);
       pictures: const [],
       profile_picture: "",
     );
-    final updateRequest =
-        ModelMutations.update<User>(updatedUser, authorizationMode: authType);
-    final updateResponse =
-        await Amplify.API.mutate(request: updateRequest).response;
+    print('Updated user object: $updatedUser');
+
+    final updateRequest = ModelMutations.update<User>(updatedUser,  );
+    print('Sending update request...');
+    final updateResponse = await Amplify.API.mutate(request: updateRequest).response;
+    print('Update response: ${updateResponse.data}');
     if (updateResponse.hasErrors) {
-      safePrint('Error updating user: ${updateResponse.errors}');
+      print('Error updating user: ${updateResponse.errors}');
     } else {
-      safePrint('User updated successfully.');
+      print('User updated successfully.');
     }
   }
+
+  print('Finished _createTestUser');
 }
 
 

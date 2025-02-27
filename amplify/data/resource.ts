@@ -15,22 +15,17 @@ const schema = a.schema({
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
-    // Inverse relationships: reference the join model field names.
-    likes: a.hasMany('UserLikes', 'id'),
-    likedBy: a.belongsTo('UserLikes', 'userId'),
-    matches: a.hasMany('UserMatches', 'id'),
-    matchedBy: a.belongsTo('UserMatches', 'userId'),
-    dislikes: a.hasMany('UserDislikes', 'id'),
-    dislikedBy: a.belongsTo('UserDislikes', 'userId'),
+    // Removed inverse relationships so they don't become required fields.
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
 
+  // Define join models independently.
   UserLikes: a.model({
     id: a.id().required(),
-    // The user doing the like
+    // The user who does the liking.
     user: a.belongsTo('User', 'id'),
-    // The user being liked
+    // The users that are liked.
     likedUsers: a.hasMany('User', 'userId'),
   }).authorization(allow => [allow.authenticated()]),
 
@@ -52,7 +47,8 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'userPool',
+    defaultAuthorizationMode: 'apiKey',
+    apiKeyAuthorizationMode: { expiresInDays: 30 }
   }
 });
 
