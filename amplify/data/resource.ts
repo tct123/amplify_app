@@ -16,11 +16,11 @@ const schema = a.schema({
     pictures: a.string().array(),
     profile_picture: a.string(),
     // Inverse relationships: reference the join model field names.
-    likes: a.hasMany('UserLikes', 'id'),
+    likes: a.hasOne('UserLikes', 'id'),
     likedBy: a.belongsTo('UserLikes', 'userId'),
-    matches: a.hasMany('UserMatches', 'id'),
+    matches: a.hasOne('UserMatches', 'id'),
     matchedBy: a.belongsTo('UserMatches', 'userId'),
-    dislikes: a.hasMany('UserDislikes', 'id'),
+    dislikes: a.hasOne('UserDislikes', 'id'),
     dislikedBy: a.belongsTo('UserDislikes', 'userId'),
   })
   .identifier(['userId'])
