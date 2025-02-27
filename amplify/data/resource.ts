@@ -15,17 +15,22 @@ const schema = a.schema({
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
-    // Removed inverse relationships so they don't become required fields.
+    // Inverse relationships: reference the join model field names.
+    likes: a.hasMany('UserLikes', 'id'),
+    likedBy: a.belongsTo('UserLikes', 'userId'),
+    matches: a.hasMany('UserMatches', 'id'),
+    matchedBy: a.belongsTo('UserMatches', 'userId'),
+    dislikes: a.hasMany('UserDislikes', 'id'),
+    dislikedBy: a.belongsTo('UserDislikes', 'userId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
 
-  // Define join models independently.
   UserLikes: a.model({
     id: a.id().required(),
-    // The user who does the liking.
+    // The user doing the like
     user: a.belongsTo('User', 'id'),
-    // The users that are liked.
+    // The user being liked
     likedUsers: a.hasMany('User', 'userId'),
   }).authorization(allow => [allow.authenticated()]),
 
