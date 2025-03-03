@@ -16,12 +16,12 @@ const schema = a.schema({
     pictures: a.string().array(),
     profile_picture: a.string(),
     // Many-to-many relationships via join models.
-    likes: a.hasMany('UserLike', 'likerId'),
-    likedBy: a.hasMany('UserLike', 'likedId'),
-    matches: a.hasMany('UserMatch', 'matcherId'),
-    matchedBy: a.hasMany('UserMatch', 'matchedId'),
-    dislikes: a.hasMany('UserDislike', 'dislikerId'),
-    dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
+    //likes: a.hasMany('UserLike', 'likerId'),
+    //likedBy: a.hasMany('UserLike', 'likedId'),
+    // matches: a.hasMany('UserMatch', 'matcherId'),
+    // matchedBy: a.hasMany('UserMatch', 'matchedId'),
+    // dislikes: a.hasMany('UserDislike', 'dislikerId'),
+    // dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
@@ -31,25 +31,25 @@ const schema = a.schema({
     // The user who does the liking.
     likerId: a.id().required(),
     // The user being liked.
-    likedId: a.id().required(),
-    liker: a.belongsTo('User', 'likerId'),
-    liked: a.belongsTo('User', 'likedId'),
+    // likedId: a.id().required(),
+    // liker: a.belongsTo('User', 'likerId'),
+    // liked: a.belongsTo('User', 'likedId'),
   }).authorization(allow => [allow.authenticated()]),
 
   UserMatch: a.model({
     id: a.id().required(),
     matcherId: a.id().required(),
     matchedId: a.id().required(),
-    matcher: a.belongsTo('User', 'matcherId'),
-    matched: a.belongsTo('User', 'matchedId'),
+    // matcher: a.belongsTo('User', 'matcherId'),
+    // matched: a.belongsTo('User', 'matchedId'),
   }).authorization(allow => [allow.authenticated()]),
 
   UserDislike: a.model({
     id: a.id().required(),
     dislikerId: a.id().required(),
     dislikedId: a.id().required(),
-    disliker: a.belongsTo('User', 'dislikerId'),
-    disliked: a.belongsTo('User', 'dislikedId'),
+    // disliker: a.belongsTo('User', 'dislikerId'),
+    // disliked: a.belongsTo('User', 'dislikedId'),
   }).authorization(allow => [allow.authenticated()])
 });
 
