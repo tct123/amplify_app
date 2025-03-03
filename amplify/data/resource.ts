@@ -15,41 +15,35 @@ const schema = a.schema({
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
-    // Many-to-many relationships via join models.
-    likes: a.hasMany('UserLike', 'likerId'),
-    likedBy: a.hasMany('UserLike', 'likedId'),
-    matches: a.hasMany('UserMatch', 'matcherId'),
-    matchedBy: a.hasMany('UserMatch', 'matchedId'),
-    dislikes: a.hasMany('UserDislike', 'dislikerId'),
-    dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
+    // Inverse relationships: reference the join model field names.
+    likes: a.hasMany('UserLikes', 'id'),
+    likedBy: a.belongsTo('UserLikes', 'userId'),
+    matches: a.hasMany('UserMatches', 'id'),
+    matchedBy: a.belongsTo('UserMatches', 'userId'),
+    dislikes: a.hasMany('UserDislikes', 'id'),
+    dislikedBy: a.belongsTo('UserDislikes', 'userId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
 
-  UserLike: a.model({
+  UserLikes: a.model({
     id: a.id().required(),
-    // The user who does the liking.
-    likerId: a.id().required(),
-    // The user being liked.
-    likedId: a.id().required(),
-    liker: a.belongsTo('User', 'likerId'),
-    liked: a.belongsTo('User', 'likedId'),
+    // The user doing the like
+    user: a.belongsTo('User', 'id'),
+    // The user being liked
+    likedUsers: a.hasMany('User', 'userId'),
   }).authorization(allow => [allow.authenticated()]),
 
-  UserMatch: a.model({
+  UserMatches: a.model({
     id: a.id().required(),
-    matcherId: a.id().required(),
-    matchedId: a.id().required(),
-    matcher: a.belongsTo('User', 'matcherId'),
-    matched: a.belongsTo('User', 'matchedId'),
+    user: a.belongsTo('User', 'id'),
+    userMatches: a.hasMany('User', 'userId'),
   }).authorization(allow => [allow.authenticated()]),
 
-  UserDislike: a.model({
+  UserDislikes: a.model({
     id: a.id().required(),
-    dislikerId: a.id().required(),
-    dislikedId: a.id().required(),
-    disliker: a.belongsTo('User', 'dislikerId'),
-    disliked: a.belongsTo('User', 'dislikedId'),
+    user: a.belongsTo('User', 'id'),
+    dislikedUsers: a.hasMany('User', 'userId'),
   }).authorization(allow => [allow.authenticated()])
 });
 

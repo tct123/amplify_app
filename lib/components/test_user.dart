@@ -48,6 +48,11 @@ Future<void> _createTestUser() async {
       radius: 10,
       pictures: const [],
       profile_picture: "",
+      likes: [],
+      likedBy: [],
+      matches:[],
+      dislikes: [],
+      dislikedBy: [],
     );
     print('New user object: $newUser');
 
