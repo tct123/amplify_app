@@ -27,8 +27,8 @@ import 'package:amplify_core/amplify_core.dart' as amplify_core;
 class UserMatch extends amplify_core.Model {
   static const classType = const _UserMatchModelType();
   final String id;
-  final String? _userId;
-  final String? _matchedUser;
+  final User? _matcher;
+  final User? _matched;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
 
@@ -45,12 +45,12 @@ class UserMatch extends amplify_core.Model {
       );
   }
   
-  String? get userId {
-    return _userId;
+  User? get matcher {
+    return _matcher;
   }
   
-  String? get matchedUser {
-    return _matchedUser;
+  User? get matched {
+    return _matched;
   }
   
   amplify_core.TemporalDateTime? get createdAt {
@@ -61,13 +61,13 @@ class UserMatch extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const UserMatch._internal({required this.id, userId, matchedUser, createdAt, updatedAt}): _userId = userId, _matchedUser = matchedUser, _createdAt = createdAt, _updatedAt = updatedAt;
+  const UserMatch._internal({required this.id, matcher, matched, createdAt, updatedAt}): _matcher = matcher, _matched = matched, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory UserMatch({String? id, String? userId, String? matchedUser}) {
+  factory UserMatch({String? id, User? matcher, User? matched}) {
     return UserMatch._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
-      userId: userId,
-      matchedUser: matchedUser);
+      matcher: matcher,
+      matched: matched);
   }
   
   bool equals(Object other) {
@@ -79,8 +79,8 @@ class UserMatch extends amplify_core.Model {
     if (identical(other, this)) return true;
     return other is UserMatch &&
       id == other.id &&
-      _userId == other._userId &&
-      _matchedUser == other._matchedUser;
+      _matcher == other._matcher &&
+      _matched == other._matched;
   }
   
   @override
@@ -92,8 +92,8 @@ class UserMatch extends amplify_core.Model {
     
     buffer.write("UserMatch {");
     buffer.write("id=" + "$id" + ", ");
-    buffer.write("userId=" + "$_userId" + ", ");
-    buffer.write("matchedUser=" + "$_matchedUser" + ", ");
+    buffer.write("matcher=" + (_matcher != null ? _matcher!.toString() : "null") + ", ");
+    buffer.write("matched=" + (_matched != null ? _matched!.toString() : "null") + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -101,55 +101,66 @@ class UserMatch extends amplify_core.Model {
     return buffer.toString();
   }
   
-  UserMatch copyWith({String? userId, String? matchedUser}) {
+  UserMatch copyWith({User? matcher, User? matched}) {
     return UserMatch._internal(
       id: id,
-      userId: userId ?? this.userId,
-      matchedUser: matchedUser ?? this.matchedUser);
+      matcher: matcher ?? this.matcher,
+      matched: matched ?? this.matched);
   }
   
   UserMatch copyWithModelFieldValues({
-    ModelFieldValue<String?>? userId,
-    ModelFieldValue<String?>? matchedUser
+    ModelFieldValue<User?>? matcher,
+    ModelFieldValue<User?>? matched
   }) {
     return UserMatch._internal(
       id: id,
-      userId: userId == null ? this.userId : userId.value,
-      matchedUser: matchedUser == null ? this.matchedUser : matchedUser.value
+      matcher: matcher == null ? this.matcher : matcher.value,
+      matched: matched == null ? this.matched : matched.value
     );
   }
   
   UserMatch.fromJson(Map<String, dynamic> json)  
     : id = json['id'],
-      _userId = json['userId'],
-      _matchedUser = json['matchedUser'],
+      _matcher = json['matcher'] != null
+        ? json['matcher']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['matcher']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['matcher']))
+        : null,
+      _matched = json['matched'] != null
+        ? json['matched']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['matched']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['matched']))
+        : null,
       _createdAt = json['createdAt'] != null ? amplify_core.TemporalDateTime.fromString(json['createdAt']) : null,
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'userId': _userId, 'matchedUser': _matchedUser, 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'matcher': _matcher?.toJson(), 'matched': _matched?.toJson(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
-    'userId': _userId,
-    'matchedUser': _matchedUser,
+    'matcher': _matcher,
+    'matched': _matched,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
 
   static final amplify_core.QueryModelIdentifier<UserMatchModelIdentifier> MODEL_IDENTIFIER = amplify_core.QueryModelIdentifier<UserMatchModelIdentifier>();
   static final ID = amplify_core.QueryField(fieldName: "id");
-  static final USERID = amplify_core.QueryField(fieldName: "userId");
-  static final MATCHEDUSER = amplify_core.QueryField(fieldName: "matchedUser");
+  static final MATCHER = amplify_core.QueryField(
+    fieldName: "matcher",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
+  static final MATCHED = amplify_core.QueryField(
+    fieldName: "matched",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "UserMatch";
     modelSchemaDefinition.pluralName = "UserMatches";
     
     modelSchemaDefinition.authRules = [
       amplify_core.AuthRule(
-        authStrategy: amplify_core.AuthStrategy.PUBLIC,
-        provider: amplify_core.AuthRuleProvider.APIKEY,
+        authStrategy: amplify_core.AuthStrategy.PRIVATE,
         operations: const [
           amplify_core.ModelOperation.CREATE,
           amplify_core.ModelOperation.UPDATE,
@@ -164,16 +175,18 @@ class UserMatch extends amplify_core.Model {
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserMatch.USERID,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserMatch.MATCHER,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['matcherId'],
+      ofModelName: 'User'
     ));
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserMatch.MATCHEDUSER,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserMatch.MATCHED,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['matchedId'],
+      ofModelName: 'User'
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(

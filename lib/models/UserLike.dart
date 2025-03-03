@@ -27,8 +27,8 @@ import 'package:amplify_core/amplify_core.dart' as amplify_core;
 class UserLike extends amplify_core.Model {
   static const classType = const _UserLikeModelType();
   final String id;
-  final String? _userId;
-  final String? _likedUser;
+  final User? _liker;
+  final User? _liked;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
 
@@ -45,12 +45,12 @@ class UserLike extends amplify_core.Model {
       );
   }
   
-  String? get userId {
-    return _userId;
+  User? get liker {
+    return _liker;
   }
   
-  String? get likedUser {
-    return _likedUser;
+  User? get liked {
+    return _liked;
   }
   
   amplify_core.TemporalDateTime? get createdAt {
@@ -61,13 +61,13 @@ class UserLike extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const UserLike._internal({required this.id, userId, likedUser, createdAt, updatedAt}): _userId = userId, _likedUser = likedUser, _createdAt = createdAt, _updatedAt = updatedAt;
+  const UserLike._internal({required this.id, liker, liked, createdAt, updatedAt}): _liker = liker, _liked = liked, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory UserLike({String? id, String? userId, String? likedUser}) {
+  factory UserLike({String? id, User? liker, User? liked}) {
     return UserLike._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
-      userId: userId,
-      likedUser: likedUser);
+      liker: liker,
+      liked: liked);
   }
   
   bool equals(Object other) {
@@ -79,8 +79,8 @@ class UserLike extends amplify_core.Model {
     if (identical(other, this)) return true;
     return other is UserLike &&
       id == other.id &&
-      _userId == other._userId &&
-      _likedUser == other._likedUser;
+      _liker == other._liker &&
+      _liked == other._liked;
   }
   
   @override
@@ -92,8 +92,8 @@ class UserLike extends amplify_core.Model {
     
     buffer.write("UserLike {");
     buffer.write("id=" + "$id" + ", ");
-    buffer.write("userId=" + "$_userId" + ", ");
-    buffer.write("likedUser=" + "$_likedUser" + ", ");
+    buffer.write("liker=" + (_liker != null ? _liker!.toString() : "null") + ", ");
+    buffer.write("liked=" + (_liked != null ? _liked!.toString() : "null") + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -101,55 +101,66 @@ class UserLike extends amplify_core.Model {
     return buffer.toString();
   }
   
-  UserLike copyWith({String? userId, String? likedUser}) {
+  UserLike copyWith({User? liker, User? liked}) {
     return UserLike._internal(
       id: id,
-      userId: userId ?? this.userId,
-      likedUser: likedUser ?? this.likedUser);
+      liker: liker ?? this.liker,
+      liked: liked ?? this.liked);
   }
   
   UserLike copyWithModelFieldValues({
-    ModelFieldValue<String?>? userId,
-    ModelFieldValue<String?>? likedUser
+    ModelFieldValue<User?>? liker,
+    ModelFieldValue<User?>? liked
   }) {
     return UserLike._internal(
       id: id,
-      userId: userId == null ? this.userId : userId.value,
-      likedUser: likedUser == null ? this.likedUser : likedUser.value
+      liker: liker == null ? this.liker : liker.value,
+      liked: liked == null ? this.liked : liked.value
     );
   }
   
   UserLike.fromJson(Map<String, dynamic> json)  
     : id = json['id'],
-      _userId = json['userId'],
-      _likedUser = json['likedUser'],
+      _liker = json['liker'] != null
+        ? json['liker']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['liker']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['liker']))
+        : null,
+      _liked = json['liked'] != null
+        ? json['liked']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['liked']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['liked']))
+        : null,
       _createdAt = json['createdAt'] != null ? amplify_core.TemporalDateTime.fromString(json['createdAt']) : null,
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'userId': _userId, 'likedUser': _likedUser, 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'liker': _liker?.toJson(), 'liked': _liked?.toJson(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
-    'userId': _userId,
-    'likedUser': _likedUser,
+    'liker': _liker,
+    'liked': _liked,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
 
   static final amplify_core.QueryModelIdentifier<UserLikeModelIdentifier> MODEL_IDENTIFIER = amplify_core.QueryModelIdentifier<UserLikeModelIdentifier>();
   static final ID = amplify_core.QueryField(fieldName: "id");
-  static final USERID = amplify_core.QueryField(fieldName: "userId");
-  static final LIKEDUSER = amplify_core.QueryField(fieldName: "likedUser");
+  static final LIKER = amplify_core.QueryField(
+    fieldName: "liker",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
+  static final LIKED = amplify_core.QueryField(
+    fieldName: "liked",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "UserLike";
     modelSchemaDefinition.pluralName = "UserLikes";
     
     modelSchemaDefinition.authRules = [
       amplify_core.AuthRule(
-        authStrategy: amplify_core.AuthStrategy.PUBLIC,
-        provider: amplify_core.AuthRuleProvider.APIKEY,
+        authStrategy: amplify_core.AuthStrategy.PRIVATE,
         operations: const [
           amplify_core.ModelOperation.CREATE,
           amplify_core.ModelOperation.UPDATE,
@@ -164,16 +175,18 @@ class UserLike extends amplify_core.Model {
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserLike.USERID,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserLike.LIKER,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['likerId'],
+      ofModelName: 'User'
     ));
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserLike.LIKEDUSER,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserLike.LIKED,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['likedId'],
+      ofModelName: 'User'
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(

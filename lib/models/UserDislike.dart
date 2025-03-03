@@ -27,8 +27,8 @@ import 'package:amplify_core/amplify_core.dart' as amplify_core;
 class UserDislike extends amplify_core.Model {
   static const classType = const _UserDislikeModelType();
   final String id;
-  final String? _userId;
-  final String? _dislikedUser;
+  final User? _disliker;
+  final User? _disliked;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
 
@@ -45,12 +45,12 @@ class UserDislike extends amplify_core.Model {
       );
   }
   
-  String? get userId {
-    return _userId;
+  User? get disliker {
+    return _disliker;
   }
   
-  String? get dislikedUser {
-    return _dislikedUser;
+  User? get disliked {
+    return _disliked;
   }
   
   amplify_core.TemporalDateTime? get createdAt {
@@ -61,13 +61,13 @@ class UserDislike extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const UserDislike._internal({required this.id, userId, dislikedUser, createdAt, updatedAt}): _userId = userId, _dislikedUser = dislikedUser, _createdAt = createdAt, _updatedAt = updatedAt;
+  const UserDislike._internal({required this.id, disliker, disliked, createdAt, updatedAt}): _disliker = disliker, _disliked = disliked, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory UserDislike({String? id, String? userId, String? dislikedUser}) {
+  factory UserDislike({String? id, User? disliker, User? disliked}) {
     return UserDislike._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
-      userId: userId,
-      dislikedUser: dislikedUser);
+      disliker: disliker,
+      disliked: disliked);
   }
   
   bool equals(Object other) {
@@ -79,8 +79,8 @@ class UserDislike extends amplify_core.Model {
     if (identical(other, this)) return true;
     return other is UserDislike &&
       id == other.id &&
-      _userId == other._userId &&
-      _dislikedUser == other._dislikedUser;
+      _disliker == other._disliker &&
+      _disliked == other._disliked;
   }
   
   @override
@@ -92,8 +92,8 @@ class UserDislike extends amplify_core.Model {
     
     buffer.write("UserDislike {");
     buffer.write("id=" + "$id" + ", ");
-    buffer.write("userId=" + "$_userId" + ", ");
-    buffer.write("dislikedUser=" + "$_dislikedUser" + ", ");
+    buffer.write("disliker=" + (_disliker != null ? _disliker!.toString() : "null") + ", ");
+    buffer.write("disliked=" + (_disliked != null ? _disliked!.toString() : "null") + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -101,55 +101,66 @@ class UserDislike extends amplify_core.Model {
     return buffer.toString();
   }
   
-  UserDislike copyWith({String? userId, String? dislikedUser}) {
+  UserDislike copyWith({User? disliker, User? disliked}) {
     return UserDislike._internal(
       id: id,
-      userId: userId ?? this.userId,
-      dislikedUser: dislikedUser ?? this.dislikedUser);
+      disliker: disliker ?? this.disliker,
+      disliked: disliked ?? this.disliked);
   }
   
   UserDislike copyWithModelFieldValues({
-    ModelFieldValue<String?>? userId,
-    ModelFieldValue<String?>? dislikedUser
+    ModelFieldValue<User?>? disliker,
+    ModelFieldValue<User?>? disliked
   }) {
     return UserDislike._internal(
       id: id,
-      userId: userId == null ? this.userId : userId.value,
-      dislikedUser: dislikedUser == null ? this.dislikedUser : dislikedUser.value
+      disliker: disliker == null ? this.disliker : disliker.value,
+      disliked: disliked == null ? this.disliked : disliked.value
     );
   }
   
   UserDislike.fromJson(Map<String, dynamic> json)  
     : id = json['id'],
-      _userId = json['userId'],
-      _dislikedUser = json['dislikedUser'],
+      _disliker = json['disliker'] != null
+        ? json['disliker']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['disliker']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['disliker']))
+        : null,
+      _disliked = json['disliked'] != null
+        ? json['disliked']['serializedData'] != null
+          ? User.fromJson(new Map<String, dynamic>.from(json['disliked']['serializedData']))
+          : User.fromJson(new Map<String, dynamic>.from(json['disliked']))
+        : null,
       _createdAt = json['createdAt'] != null ? amplify_core.TemporalDateTime.fromString(json['createdAt']) : null,
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'userId': _userId, 'dislikedUser': _dislikedUser, 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'disliker': _disliker?.toJson(), 'disliked': _disliked?.toJson(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
-    'userId': _userId,
-    'dislikedUser': _dislikedUser,
+    'disliker': _disliker,
+    'disliked': _disliked,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
 
   static final amplify_core.QueryModelIdentifier<UserDislikeModelIdentifier> MODEL_IDENTIFIER = amplify_core.QueryModelIdentifier<UserDislikeModelIdentifier>();
   static final ID = amplify_core.QueryField(fieldName: "id");
-  static final USERID = amplify_core.QueryField(fieldName: "userId");
-  static final DISLIKEDUSER = amplify_core.QueryField(fieldName: "dislikedUser");
+  static final DISLIKER = amplify_core.QueryField(
+    fieldName: "disliker",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
+  static final DISLIKED = amplify_core.QueryField(
+    fieldName: "disliked",
+    fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "UserDislike";
     modelSchemaDefinition.pluralName = "UserDislikes";
     
     modelSchemaDefinition.authRules = [
       amplify_core.AuthRule(
-        authStrategy: amplify_core.AuthStrategy.PUBLIC,
-        provider: amplify_core.AuthRuleProvider.APIKEY,
+        authStrategy: amplify_core.AuthStrategy.PRIVATE,
         operations: const [
           amplify_core.ModelOperation.CREATE,
           amplify_core.ModelOperation.UPDATE,
@@ -164,16 +175,18 @@ class UserDislike extends amplify_core.Model {
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.id());
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserDislike.USERID,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserDislike.DISLIKER,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['dislikerId'],
+      ofModelName: 'User'
     ));
     
-    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
-      key: UserDislike.DISLIKEDUSER,
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.belongsTo(
+      key: UserDislike.DISLIKED,
       isRequired: false,
-      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+      targetNames: ['dislikedId'],
+      ofModelName: 'User'
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(
