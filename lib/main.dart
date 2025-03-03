@@ -14,6 +14,7 @@ Future<void> main() async {
     await _configureAmplify();
     runApp(const MyApp());
   } on AmplifyException catch (e) {
+	  print("HELLO");
     runApp(
       MaterialApp(
         home: Scaffold(
