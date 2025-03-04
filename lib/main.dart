@@ -1,3 +1,4 @@
+import 'package:amplify_app/components/like_button.dart';
 import 'package:amplify_app/components/test_user.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_authenticator/amplify_authenticator.dart';
@@ -19,7 +20,7 @@ Future<void> main() async {
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: Text("Error configuring Amplify: ${e.message}"),
+            child: Text("1 Error configuring Amplify: ${e.message}"),
           ),
         ),
       ),
@@ -40,8 +41,6 @@ Future<void> _configureAmplify() async {
       ],
     );
     await Amplify.configure(amplifyConfig);
-    final currentUser = await Amplify.Auth.getCurrentUser();
-    print(currentUser.userId);
 
     safePrint('Successfully configured Amplify');
   } on Exception catch (e) {
@@ -98,7 +97,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const SignOutButton(),
-	    const TestUserButton()
+	    const TestLikeButton()
           ],
         ),
       ),

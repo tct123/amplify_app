@@ -39,10 +39,10 @@ Future<void> _createTestUser() async {
     print('No existing user found. Creating new user.');
     final newUser = User(
       userId: currentUser.userId,
-      name: "Test User Woman",
+      name: "Denaerys Targaryan",
       age: 25,
-      gender: "Female H",
-      gender_preference: "Male",
+      gender: "Female",
+      gender_preference: "Men",
       age_preference: [18, 25],
       location: UserLocation(lat: 37.7749, long: -122.4194),
       radius: 10,
@@ -56,7 +56,7 @@ Future<void> _createTestUser() async {
     );
     print('New user object: $newUser');
 
-    final createRequest = ModelMutations.create<User>(newUser);
+    final createRequest = ModelMutations.create<User>(newUser, authorizationMode: APIAuthorizationType.userPools,);
     print('Sending create request...');
     final createResponse = await Amplify.API.mutate(request: createRequest).response;
     print('Create response: ${createResponse.data}');
