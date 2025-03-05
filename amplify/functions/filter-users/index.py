@@ -1,49 +1,23 @@
-import os
-import json
-import pymysql
-from itertools import combinations
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
 
 def handler(event, context):
-    # Retrieve credentials and connection info from environment variables.
-    db_host = os.environ.get("DB_HOST")
-    db_user = os.environ.get("DB_USER")
-    db_password = os.environ.get("DB_PASSWORD")
-    db_name = os.environ.get("DB_NAME")
-
-    # Establish a connection using credentials from environment variables.
-    try:
-        connection = pymysql.connect(
-            host=db_host,
-            user=db_user,
-            password=db_password,
-            database=db_name,
-            cursorclass=pymysql.cursors.DictCursor,
-            connect_timeout=5
-        )
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": f"Database connection failed: {str(e)}"})
-        }
+    # Create a DynamoDB client/resource
+    dynamodb = boto3.resource('dynamodb')
     
-    try:
-        with connection.cursor() as cursor:
-            # Retrieve all users from the 'users' table.
-            cursor.execute("SELECT id, name, gender FROM users")
-            users = cursor.fetchall()
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": f"Query execution failed: {str(e)}"})
-        }
-    finally:
-        connection.close()
+    # Replace 'YourUserTable' with your actual DynamoDB table name.
+    table = dynamodb.Table('User-wzrxyxdpvjfbvd57ueidm4kch4-NONE')
     
-    # Separate users by gender (expects values like "male" or "female")
+    # Query or scan the table for users (this is a basic scan; for production, consider using query with indexes).
+    response = table.scan()
+    users = response.get('Items', [])
+    
+    # Filter users based on your criteria.
     male_users = [user for user in users if user.get('gender', '').lower() == 'male']
     female_users = [user for user in users if user.get('gender', '').lower() == 'female']
     
-    # Build groups of 4 (2 males and 2 females)
+    # For grouping, you could use combinations as before.
+    from itertools import combinations
     valid_groups = [
         list(male_group) + list(female_group)
         for male_group in combinations(male_users, 2)
@@ -52,6 +26,6 @@ def handler(event, context):
     
     return {
         "statusCode": 200,
-        "body": json.dumps(valid_groups)
+        "body": valid_groups
     }
 
