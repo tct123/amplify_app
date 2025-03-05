@@ -55,6 +55,7 @@ const schema = a.schema({
 
   filterUserGroups: a.query()
     .returns(a.string()) // Adjust return type as needed (could be an object, list, etc.)
+    .authorization(allow => [allow.authenticated()])  // Specify who can access this query.
     .handler(a.handler.function(filterUsersFunctionHandler)),
 });
 
