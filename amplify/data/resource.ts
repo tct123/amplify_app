@@ -24,7 +24,7 @@ const schema = a.schema({
     dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
   })
   .identifier(['userId'])
-  .authorization(allow => [allow.authenticated().to(['read']), allow.owner()]),
+  .authorization(allow => [allow.authenticated()]),
 
   UserLike: a.model({
     id: a.id().required(),
@@ -34,7 +34,7 @@ const schema = a.schema({
     likedId: a.id().required(),
     liker: a.belongsTo('User', 'likerId'),
     liked: a.belongsTo('User', 'likedId'),
-  }).authorization(allow => [allow.authenticated().to(['read']), allow.owner()]),
+  }).authorization(allow => [allow.authenticated()]),
 
   UserMatch: a.model({
     id: a.id().required(),
@@ -42,7 +42,7 @@ const schema = a.schema({
     matchedId: a.id().required(),
     matcher: a.belongsTo('User', 'matcherId'),
     matched: a.belongsTo('User', 'matchedId'),
-  }).authorization(allow => [allow.authenticated().to(['read']), allow.owner()]),
+  }).authorization(allow => [allow.authenticated()]),
 
   UserDislike: a.model({
     id: a.id().required(),
@@ -50,7 +50,11 @@ const schema = a.schema({
     dislikedId: a.id().required(),
     disliker: a.belongsTo('User', 'dislikerId'),
     disliked: a.belongsTo('User', 'dislikedId'),
-  }).authorization(allow => [allow.authenticated().to(['read']), allow.owner()])
+  }).authorization(allow => [allow.authenticated()])
+
+  filterUserGroups: a.query()
+    .returns(a.string()) // Adjust return type as needed (could be an object, list, etc.)
+    .handler(a.handler.function(filterUsersFunctionHandler)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_app/models/User.dart';
-import 'package:amplify_app/models/UserLike.dart';
+import 'package:amplify_app/models/UserDislike.dart';
 
-class TestLikeButton extends StatelessWidget {
-  const TestLikeButton({Key? key}) : super(key: key);
+class TestDislikeButton extends StatelessWidget {
+  const TestDislikeButton({Key? key}) : super(key: key);
 
-  Future<void> _createLike() async {
-    print('Starting _createLike');
+  Future<void> _createDislike() async {
+    print('Starting _createDislike');
 
     // Step 1: Get the current authenticated user's ID.
     final currentUser = await Amplify.Auth.getCurrentUser();
-    print('Current user ID (liker): ${currentUser.userId}');
+    print('Current user ID (disliker): ${currentUser.userId}');
 
     // Step 2: Query all female users from the database.
-    // Assuming your generated User model has a static field "GENDER" with an eq operator.
     print('Querying female users from the database...');
     final listRequest = ModelQueries.list(
       User.classType,
@@ -33,44 +32,39 @@ class TestLikeButton extends StatelessWidget {
     }
     print('Found ${femaleUsers.length} female users.');
 
-    // Step 3: Select one female user (for example, the first one).
+    // Step 3: Select one female user (for example, the last one).
     final User? selectedUser = femaleUsers.last;
-    print('Selected female user ID (liked): ${selectedUser!.userId}');
+    print('Selected female user ID (disliked): ${selectedUser!.userId}');
 
-    final User likingUser = User(
-	    userId: currentUser.userId,
-	    );
-
-    // Step 4: Create a UserLike record.
-    final userLike = UserLike(
-      // Do not provide an explicit id so that the backend auto-generates one.
-      // if so, pass null or omit them if they're optional.
-      liker: likingUser,
-      liked: selectedUser,
+    // Step 4: Create a UserDislike record.
+    final userDislike = UserDislike(
+      disliker: User(userId: currentUser.userId),
+      disliked: selectedUser,
     );
-    print('Constructed UserLike object: $userLike');
+    print('Constructed UserDislike object: $userDislike');
 
     // Step 5: Send the mutation request.
-    final createRequest = ModelMutations.create<UserLike>(
-      userLike,
+    final createRequest = ModelMutations.create<UserDislike>(
+      userDislike,
       authorizationMode: APIAuthorizationType.userPools,
     );
-    print('Sending create UserLike request...');
+    print('Sending create UserDislike request...');
     final createResponse = await Amplify.API.mutate(request: createRequest).response;
     if (createResponse.hasErrors) {
-      print('Error creating UserLike: ${createResponse.errors}');
+      print('Error creating UserDislike: ${createResponse.errors}');
     } else {
-      print('UserLike created successfully: ${createResponse.data}');
+      print('UserDislike created successfully: ${createResponse.data}');
     }
-    print('Finished _createLike');
+    print('Finished _createDislike');
   }
 
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: _createLike,
-      tooltip: 'Create Like',
-      child: const Icon(Icons.thumb_up),
+      onPressed: _createDislike,
+      tooltip: 'Create Dislike',
+      child: const Icon(Icons.thumb_down),
     );
   }
 }
+

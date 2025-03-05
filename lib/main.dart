@@ -1,3 +1,4 @@
+import 'package:amplify_app/components/dislike_button.dart';
 import 'package:amplify_app/components/like_button.dart';
 import 'package:amplify_app/components/test_user.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
@@ -97,6 +98,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const SignOutButton(),
+	    const TestDislikeButton(),
 	    const TestLikeButton()
           ],
         ),
