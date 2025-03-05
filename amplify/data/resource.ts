@@ -1,4 +1,5 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
+import { filterUsersFunctionHandler } from '../functions/filter-users/resource';
 
 const schema = a.schema({
   User: a.model({
