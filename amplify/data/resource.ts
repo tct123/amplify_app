@@ -52,7 +52,7 @@ const schema = a.schema({
     disliked: a.belongsTo('User', 'dislikedId'),
   }).authorization(allow => [allow.authenticated()]),
 
-  filterUserGroups: a.query(),
+  filterUserGroups: a.query()
     .returns(a.string()) // Adjust return type as needed (could be an object, list, etc.)
     .handler(a.handler.function(filterUsersFunctionHandler)),
 });
