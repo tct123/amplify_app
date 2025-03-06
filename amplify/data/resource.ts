@@ -23,6 +23,7 @@ const schema = a.schema({
     matchedBy: a.hasMany('UserMatch', 'matchedId'),
     dislikes: a.hasMany('UserDislike', 'dislikerId'),
     dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
+    callList: a.hasMany('CallList', 'callerId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
@@ -44,6 +45,14 @@ const schema = a.schema({
     matcher: a.belongsTo('User', 'matcherId'),
     matched: a.belongsTo('User', 'matchedId'),
   }).authorization(allow => [allow.authenticated()]),
+
+  CallList: a.model({
+    id: a.id().required(),
+    callerId: a.id().required(),
+    calls: a.string().array(),
+    caller: a.belongsTo('User', 'callerId'),
+  }).authorization(allow => [allow.authenticated()]),
+
 
   UserDislike: a.model({
     id: a.id().required(),
