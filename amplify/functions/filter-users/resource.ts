@@ -11,22 +11,23 @@ export const filterUsersFunctionHandler = defineFunction(
   (scope) =>
     new Function(scope, "filter-users", {
       handler: "index.handler",
-      runtime: Runtime.PYTHON_3_9, // or another supported Python version
+      runtime: Runtime.PYTHON_3_9,
       timeout: Duration.seconds(20),
       code: Code.fromAsset(functionDir, {
         bundling: {
-          image: DockerImage.fromRegistry("dummy"), // Replace with your desired image if needed
+          // Use a public SAM build image for Python 3.9 for compatibility.
+          image: DockerImage.fromRegistry("public.ecr.aws/sam/build-python3.9"),
           local: {
             tryBundle(outputDir: string) {
-              // Install dependencies from requirements.txt
+              // Install dependencies from requirements.txt into the output directory.
               execSync(
                 `python3 -m pip install -r ${path.join(
                   functionDir,
                   "requirements.txt"
-                )} -t ${path.join(outputDir)} --platform manylinux2014_x86_64 --only-binary=:all:`
+                )} -t ${outputDir} --platform manylinux2014_x86_64 --only-binary=:all:`
               );
-              // Copy the rest of the code
-              execSync(`cp -r ${functionDir}/* ${path.join(outputDir)}`);
+              // Copy all files from the function directory into the output directory.
+              execSync(`cp -r ${functionDir}/* ${outputDir}`);
               return true;
             },
           },
@@ -34,7 +35,7 @@ export const filterUsersFunctionHandler = defineFunction(
       }),
     }),
     {
-      resourceGroupName: "custom", // Optionally group related resources
+      resourceGroupName: "custom",
     }
 );
 
