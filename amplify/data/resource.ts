@@ -46,11 +46,24 @@ const schema = a.schema({
     matched: a.belongsTo('User', 'matchedId'),
   }).authorization(allow => [allow.authenticated()]),
 
+
+  Event: a.model({
+    id: a.id().required(),
+    date: a.string().required(),
+    location: a.customType({
+      lat: a.float().required(),
+      long: a.float().required(),
+    }),
+    eventId: a.belongsTo('CallList', 'eventId')
+  }).authorization(allow => [allow.authenticated()]),
+
+
   CallList: a.model({
     id: a.id().required(),
     callerId: a.id().required(),
     calls: a.string().array(),
     caller: a.belongsTo('User', 'callerId'),
+    eventId: a.hasOne('Event', 'eventId')
   }).authorization(allow => [allow.authenticated()]),
 
 
