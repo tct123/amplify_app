@@ -46,15 +46,27 @@ const schema = a.schema({
     matched: a.belongsTo('User', 'matchedId'),
   }).authorization(allow => [allow.authenticated()]),
 
+  Queue: a.model({
+    id: a.id().required(),
+    queueId: a.hasOne('Event', 'queueId'),
+    userList: a.string().array(),
+    isMaleList: a.boolean()
+  }).authorization(allow => [allow.authenticated()]),
+
+
 
   Event: a.model({
     id: a.id().required(),
+    shouldAddMan: a.boolean(),
     date: a.string().required(),
     location: a.customType({
       lat: a.float().required(),
       long: a.float().required(),
     }),
-    eventId: a.belongsTo('CallList', 'eventId')
+    queueId: a.id().required(),
+    eventId: a.id().required(),
+    event: a.belongsTo('CallList', 'eventId'),
+    queue: a.belongsTo('Queue', 'queueId')
   }).authorization(allow => [allow.authenticated()]),
 
 
