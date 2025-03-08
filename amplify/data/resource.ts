@@ -58,6 +58,7 @@ const schema = a.schema({
   Event: a.model({
     id: a.id().required(),
     shouldAddMan: a.boolean(),
+    orientation: a.string().required(),
     date: a.string().required(),
     location: a.customType({
       lat: a.float().required(),
