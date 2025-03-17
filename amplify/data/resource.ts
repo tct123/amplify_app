@@ -23,7 +23,8 @@ const schema = a.schema({
     matchedBy: a.hasMany('UserMatch', 'matchedId'),
     dislikes: a.hasMany('UserDislike', 'dislikerId'),
     dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
-    callList: a.hasMany('CallList', 'callerId'),
+    callList: a.hasMany('Call', 'callerId'),
+    called: a.belongsTo('Call', 'userId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
@@ -66,16 +67,16 @@ const schema = a.schema({
     }),
     queueId: a.id().required(),
     eventId: a.id().required(),
-    event: a.belongsTo('CallList', 'eventId'),
+    event: a.belongsTo('Call', 'eventId'),
     queue: a.belongsTo('Queue', 'queueId')
   }).authorization(allow => [allow.authenticated()]),
 
 
-  CallList: a.model({
+  Call: a.model({
     id: a.id().required(),
     callerId: a.id().required(),
-    calls: a.string().array(),
     caller: a.belongsTo('User', 'callerId'),
+    calledId: a.hasOne('User', 'userId'),
     eventId: a.hasOne('Event', 'eventId')
   }).authorization(allow => [allow.authenticated()]),
 
