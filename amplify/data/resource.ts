@@ -65,8 +65,8 @@ const schema = a.schema({
       lat: a.float().required(),
       long: a.float().required(),
     }),
-    queueId: a.id().required(),
-    eventId: a.id(),
+    queueId: a.id(),
+    eventId: a.id().required(),
     event: a.belongsTo('Call', 'eventId'),
     queue: a.belongsTo('Queue', 'queueId')
   }).authorization(allow => [allow.authenticated()]),
