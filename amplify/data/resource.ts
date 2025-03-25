@@ -13,6 +13,7 @@ const schema = a.schema({
       lat: a.float().required(),
       long: a.float().required(),
     }),
+    about: a.string(),
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
