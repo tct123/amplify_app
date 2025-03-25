@@ -13,7 +13,7 @@ const schema = a.schema({
       lat: a.float().required(),
       long: a.float().required(),
     }),
-    about: a.string(),
+    aboutMe: a.string(),
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
@@ -38,7 +38,9 @@ const schema = a.schema({
     likedId: a.id().required(),
     liker: a.belongsTo('User', 'likerId'),
     liked: a.belongsTo('User', 'likedId'),
-  }).authorization(allow => [allow.authenticated()]),
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
 
   UserMatch: a.model({
     id: a.id().required(),
@@ -46,15 +48,19 @@ const schema = a.schema({
     matchedId: a.id().required(),
     matcher: a.belongsTo('User', 'matcherId'),
     matched: a.belongsTo('User', 'matchedId'),
-  }).authorization(allow => [allow.authenticated()]),
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
 
+/*
   Queue: a.model({
     id: a.id().required(),
     queueId: a.hasOne('Event', 'queueId'),
     userList: a.string().array(),
     isMaleList: a.boolean()
-  }).authorization(allow => [allow.authenticated()]),
-
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
 
 
   Event: a.model({
@@ -70,16 +76,20 @@ const schema = a.schema({
     eventId: a.id().required(),
     event: a.belongsTo('Call', 'eventId'),
     queue: a.belongsTo('Queue', 'queueId')
-  }).authorization(allow => [allow.authenticated()]),
-
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
+*/
 
   Call: a.model({
     id: a.id().required(),
     callerId: a.id().required(),
     caller: a.belongsTo('User', 'callerId'),
     calledId: a.hasOne('User', 'userId'),
-    eventId: a.hasOne('Event', 'eventId')
-  }).authorization(allow => [allow.authenticated()]),
+ //   eventId: a.hasOne('Event', 'eventId')
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
 
 
   UserDislike: a.model({
@@ -88,7 +98,9 @@ const schema = a.schema({
     dislikedId: a.id().required(),
     disliker: a.belongsTo('User', 'dislikerId'),
     disliked: a.belongsTo('User', 'dislikedId'),
-  }).authorization(allow => [allow.authenticated()]),
+  })
+  .identifier(['id'])
+  .authorization(allow => [allow.authenticated()]),
 
   filterUserGroups: a.query()
     .returns(a.string()) // Adjust return type as needed (could be an object, list, etc.)
