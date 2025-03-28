@@ -25,7 +25,7 @@ const schema = a.schema({
     dislikes: a.hasMany('UserDislike', 'dislikerId'),
     dislikedBy: a.hasMany('UserDislike', 'dislikedId'),
     callList: a.hasMany('Call', 'callerId'),
-    called: a.belongsTo('Call', 'userId'),
+    called: a.hasMany('Call', 'calledId'),
   })
   .identifier(['userId'])
   .authorization(allow => [allow.authenticated()]),
@@ -84,8 +84,9 @@ const schema = a.schema({
   Call: a.model({
     id: a.id().required(),
     callerId: a.id().required(),
+    calledId: a.id().required(),
     caller: a.belongsTo('User', 'callerId'),
-    calledId: a.hasOne('User', 'userId'),
+    called: a.belongsTo('User', 'calledId'),
  //   eventId: a.hasOne('Event', 'eventId')
   })
   .identifier(['id'])

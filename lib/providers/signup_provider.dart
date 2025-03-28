@@ -1,15 +1,14 @@
-// lib/providers/signup_provider.dart
 import 'package:flutter/material.dart';
 
 class SignupProvider with ChangeNotifier {
-  int currentStep = 1;
+  int _currentStep = 1;
   Map<String, dynamic> userData = {};
 
-  void nextStep() {
-    if (currentStep < 3) {
-      currentStep++;
-      notifyListeners();
-    }
+  int get currentStep => _currentStep;
+
+  set currentStep(int value) {
+    _currentStep = value;
+    notifyListeners();
   }
 
   void addData(Map<String, dynamic> data) {

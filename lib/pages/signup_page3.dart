@@ -1,9 +1,9 @@
 // lib/pages/signup_page3.dart
+import 'package:amplify_app/models/User.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../providers/signup_provider.dart';
-import '../models/API.ts'; // Your user.dart
 
 class SignupPage3 extends StatefulWidget {
   @override
@@ -26,7 +26,7 @@ class _SignupPage3State extends State<SignupPage3> {
         location: provider.userData['location'], // String for now, cast later
         aboutMe: _aboutController.text,
       );
-      await Amplify.DataStore.save(user);
+      // await Amplify.DataStore.save(user);
       Navigator.pushReplacementNamed(context, '/home'); // Your main screen
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
