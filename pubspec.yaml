@@ -42,6 +42,8 @@ dependencies:
   amplify_api: ^2.6.0
   provider: ^6.1.2
   image_picker: ^1.1.2
+  google_maps_flutter: ^2.12.0
+  geocoding: ^3.0.0
 
 dev_dependencies:
   flutter_test:
