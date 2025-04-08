@@ -31,7 +31,6 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final currentUser = await Amplify.Auth.getCurrentUser();
       await _userService.saveUser(
-        userId: currentUser.userId,
         name: provider.userData['name'] as String,
         age: provider.userData['age'] as int,
         gender: provider.userData['gender'] as String,
