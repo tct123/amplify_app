@@ -17,8 +17,8 @@ const schema = a.schema({
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
-    isAvailable: a.boolean(),
-    online: a.boolean(), // New field
+    isAvailable: a.boolean().default('true'),
+    online: a.boolean().default('false'), // New field
     currentCall: a.string(),
     // Many-to-many relationships via join models.
     likes: a.hasMany('UserLike', 'likerId'),
