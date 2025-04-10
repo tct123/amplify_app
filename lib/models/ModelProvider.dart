@@ -25,9 +25,13 @@ import 'User.dart';
 import 'UserDislike.dart';
 import 'UserLike.dart';
 import 'UserMatch.dart';
+import 'MatchUsersReturnType.dart';
+import 'MatchUsersReturnTypeMatchedUser.dart';
 import 'UserLocation.dart';
 
 export 'Call.dart';
+export 'MatchUsersReturnType.dart';
+export 'MatchUsersReturnTypeMatchedUser.dart';
 export 'User.dart';
 export 'UserDislike.dart';
 export 'UserLike.dart';
@@ -36,11 +40,11 @@ export 'UserMatch.dart';
 
 class ModelProvider implements amplify_core.ModelProviderInterface {
   @override
-  String version = "1caf9da4ff5940080fe17d32ebf1c020";
+  String version = "d8291d28baec3d8fc6bc47153ed17cba";
   @override
   List<amplify_core.ModelSchema> modelSchemas = [Call.schema, User.schema, UserDislike.schema, UserLike.schema, UserMatch.schema];
   @override
-  List<amplify_core.ModelSchema> customTypeSchemas = [UserLocation.schema];
+  List<amplify_core.ModelSchema> customTypeSchemas = [MatchUsersReturnType.schema, MatchUsersReturnTypeMatchedUser.schema, UserLocation.schema];
   static final ModelProvider _instance = ModelProvider();
 
   static ModelProvider get instance => _instance;

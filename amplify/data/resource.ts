@@ -1,5 +1,6 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { filterUsersFunctionHandler } from '../functions/filter-users/resource';
+import { matchUsers } from '../functions/match-users/resource';
 
 const schema = a.schema({
   User: a.model({
@@ -111,6 +112,21 @@ const schema = a.schema({
     .returns(a.string()) // Adjust return type as needed (could be an object, list, etc.)
     .authorization(allow => [allow.authenticated()])  // Specify who can access this query.
     .handler(a.handler.function(filterUsersFunctionHandler)),
+
+    matchUsers: a.mutation()
+    .arguments({ userId: a.id().required() })
+    .returns(a.customType({
+      callId: a.id(),
+      matchedUser: a.customType({
+        userId: a.id().required(),
+        name: a.string().required(),
+        profilePicture: a.string(),
+      }),
+      status: a.string(),
+      error: a.string(),
+    }))
+    .authorization(allow => [allow.authenticated()])
+    .handler(a.handler.function(matchUsers)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

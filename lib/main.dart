@@ -105,6 +105,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return '/signup';
       }
 
+
       final user = await Amplify.Auth.getCurrentUser();
       final userId = user.userId;
       final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
