@@ -31,7 +31,7 @@ export const matchUsers = defineFunction(
         },
       }),
       environment: {
-        TABLE_NAME: 'amplify-amplifyapp-kalleh-main-abc123', // Replace with actual table name
+        TABLE_NAME: 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE', // Replace with actual table name
       },
     }),
     {

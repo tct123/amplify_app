@@ -5,7 +5,7 @@ from datetime import datetime
 from boto3.dynamodb.conditions import Key, Attr
 
 dynamodb = boto3.resource('dynamodb', region_name='eu-north-1')
-TABLE_NAME = 'YourDynamoDBTableName'  # Replace this later
+TABLE_NAME = 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE'  # Replace this later
 
 def handler(event, context):
     user_id = event['arguments']['userId']
