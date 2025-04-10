@@ -10,7 +10,7 @@ class UserService {
     // Get the authenticated User Pool ID
     final user = await Amplify.Auth.getCurrentUser();
     final userId = user.userId; // Cognito User Pool ID
-    final storagePath = StoragePath.fromString('profile-pictures/$userId/profile.jpg');
+    final storagePath = StoragePath.fromIdentityId((String identityId) => 'profile-pictures/$identityId/profile.jpg');
     
     try {
       safePrint('User Pool ID: $userId');
