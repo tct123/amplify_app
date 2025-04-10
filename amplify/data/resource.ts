@@ -94,7 +94,7 @@ const schema = a.schema({
  //   eventId: a.hasOne('Event', 'eventId')
   })
   .identifier(['id'])
-  .authorization(allow => [allow.authenticated()]),
+  .authorization(allow => [allow.authenticated(), allow.owner("callerId", "calledId")]),
 
 
   UserDislike: a.model({
