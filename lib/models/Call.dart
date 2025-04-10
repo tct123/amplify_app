@@ -29,6 +29,7 @@ class Call extends amplify_core.Model {
   final String id;
   final User? _caller;
   final User? _called;
+  final String? _status;
   final amplify_core.TemporalDateTime? _createdAt;
   final amplify_core.TemporalDateTime? _updatedAt;
 
@@ -53,6 +54,10 @@ class Call extends amplify_core.Model {
     return _called;
   }
   
+  String? get status {
+    return _status;
+  }
+  
   amplify_core.TemporalDateTime? get createdAt {
     return _createdAt;
   }
@@ -61,13 +66,14 @@ class Call extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const Call._internal({required this.id, caller, called, createdAt, updatedAt}): _caller = caller, _called = called, _createdAt = createdAt, _updatedAt = updatedAt;
+  const Call._internal({required this.id, caller, called, status, createdAt, updatedAt}): _caller = caller, _called = called, _status = status, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory Call({String? id, User? caller, User? called}) {
+  factory Call({String? id, User? caller, User? called, String? status}) {
     return Call._internal(
       id: id == null ? amplify_core.UUID.getUUID() : id,
       caller: caller,
-      called: called);
+      called: called,
+      status: status);
   }
   
   bool equals(Object other) {
@@ -80,7 +86,8 @@ class Call extends amplify_core.Model {
     return other is Call &&
       id == other.id &&
       _caller == other._caller &&
-      _called == other._called;
+      _called == other._called &&
+      _status == other._status;
   }
   
   @override
@@ -94,6 +101,7 @@ class Call extends amplify_core.Model {
     buffer.write("id=" + "$id" + ", ");
     buffer.write("caller=" + (_caller != null ? _caller!.toString() : "null") + ", ");
     buffer.write("called=" + (_called != null ? _called!.toString() : "null") + ", ");
+    buffer.write("status=" + "$_status" + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -101,21 +109,24 @@ class Call extends amplify_core.Model {
     return buffer.toString();
   }
   
-  Call copyWith({User? caller, User? called}) {
+  Call copyWith({User? caller, User? called, String? status}) {
     return Call._internal(
       id: id,
       caller: caller ?? this.caller,
-      called: called ?? this.called);
+      called: called ?? this.called,
+      status: status ?? this.status);
   }
   
   Call copyWithModelFieldValues({
     ModelFieldValue<User?>? caller,
-    ModelFieldValue<User?>? called
+    ModelFieldValue<User?>? called,
+    ModelFieldValue<String?>? status
   }) {
     return Call._internal(
       id: id,
       caller: caller == null ? this.caller : caller.value,
-      called: called == null ? this.called : called.value
+      called: called == null ? this.called : called.value,
+      status: status == null ? this.status : status.value
     );
   }
   
@@ -131,17 +142,19 @@ class Call extends amplify_core.Model {
           ? User.fromJson(new Map<String, dynamic>.from(json['called']['serializedData']))
           : User.fromJson(new Map<String, dynamic>.from(json['called']))
         : null,
+      _status = json['status'],
       _createdAt = json['createdAt'] != null ? amplify_core.TemporalDateTime.fromString(json['createdAt']) : null,
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'id': id, 'caller': _caller?.toJson(), 'called': _called?.toJson(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'id': id, 'caller': _caller?.toJson(), 'called': _called?.toJson(), 'status': _status, 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
     'id': id,
     'caller': _caller,
     'called': _called,
+    'status': _status,
     'createdAt': _createdAt,
     'updatedAt': _updatedAt
   };
@@ -154,6 +167,7 @@ class Call extends amplify_core.Model {
   static final CALLED = amplify_core.QueryField(
     fieldName: "called",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'User'));
+  static final STATUS = amplify_core.QueryField(fieldName: "status");
   static var schema = amplify_core.Model.defineSchema(define: (amplify_core.ModelSchemaDefinition modelSchemaDefinition) {
     modelSchemaDefinition.name = "Call";
     modelSchemaDefinition.pluralName = "Calls";
@@ -187,6 +201,12 @@ class Call extends amplify_core.Model {
       isRequired: false,
       targetNames: ['calledId'],
       ofModelName: 'User'
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: Call.STATUS,
+      isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.nonQueryField(

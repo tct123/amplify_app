@@ -38,6 +38,9 @@ class User extends amplify_core.Model {
   final int? _radius;
   final List<String>? _pictures;
   final String? _profile_picture;
+  final bool? _isAvailable;
+  final bool? _online;
+  final String? _currentCall;
   final List<UserLike>? _likes;
   final List<UserLike>? _likedBy;
   final List<UserMatch>? _matches;
@@ -124,6 +127,18 @@ class User extends amplify_core.Model {
     return _profile_picture;
   }
   
+  bool? get isAvailable {
+    return _isAvailable;
+  }
+  
+  bool? get online {
+    return _online;
+  }
+  
+  String? get currentCall {
+    return _currentCall;
+  }
+  
   List<UserLike>? get likes {
     return _likes;
   }
@@ -164,9 +179,9 @@ class User extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const User._internal({required userId, name, age, gender, gender_preference, age_preference, location, aboutMe, radius, pictures, profile_picture, likes, likedBy, matches, matchedBy, dislikes, dislikedBy, callList, called, createdAt, updatedAt}): _userId = userId, _name = name, _age = age, _gender = gender, _gender_preference = gender_preference, _age_preference = age_preference, _location = location, _aboutMe = aboutMe, _radius = radius, _pictures = pictures, _profile_picture = profile_picture, _likes = likes, _likedBy = likedBy, _matches = matches, _matchedBy = matchedBy, _dislikes = dislikes, _dislikedBy = dislikedBy, _callList = callList, _called = called, _createdAt = createdAt, _updatedAt = updatedAt;
+  const User._internal({required userId, name, age, gender, gender_preference, age_preference, location, aboutMe, radius, pictures, profile_picture, isAvailable, online, currentCall, likes, likedBy, matches, matchedBy, dislikes, dislikedBy, callList, called, createdAt, updatedAt}): _userId = userId, _name = name, _age = age, _gender = gender, _gender_preference = gender_preference, _age_preference = age_preference, _location = location, _aboutMe = aboutMe, _radius = radius, _pictures = pictures, _profile_picture = profile_picture, _isAvailable = isAvailable, _online = online, _currentCall = currentCall, _likes = likes, _likedBy = likedBy, _matches = matches, _matchedBy = matchedBy, _dislikes = dislikes, _dislikedBy = dislikedBy, _callList = callList, _called = called, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory User({required String userId, String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
+  factory User({required String userId, String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
     return User._internal(
       userId: userId,
       name: name,
@@ -179,6 +194,9 @@ class User extends amplify_core.Model {
       radius: radius,
       pictures: pictures != null ? List<String>.unmodifiable(pictures) : pictures,
       profile_picture: profile_picture,
+      isAvailable: isAvailable,
+      online: online,
+      currentCall: currentCall,
       likes: likes != null ? List<UserLike>.unmodifiable(likes) : likes,
       likedBy: likedBy != null ? List<UserLike>.unmodifiable(likedBy) : likedBy,
       matches: matches != null ? List<UserMatch>.unmodifiable(matches) : matches,
@@ -208,6 +226,9 @@ class User extends amplify_core.Model {
       _radius == other._radius &&
       DeepCollectionEquality().equals(_pictures, other._pictures) &&
       _profile_picture == other._profile_picture &&
+      _isAvailable == other._isAvailable &&
+      _online == other._online &&
+      _currentCall == other._currentCall &&
       DeepCollectionEquality().equals(_likes, other._likes) &&
       DeepCollectionEquality().equals(_likedBy, other._likedBy) &&
       DeepCollectionEquality().equals(_matches, other._matches) &&
@@ -237,6 +258,9 @@ class User extends amplify_core.Model {
     buffer.write("radius=" + (_radius != null ? _radius!.toString() : "null") + ", ");
     buffer.write("pictures=" + (_pictures != null ? _pictures!.toString() : "null") + ", ");
     buffer.write("profile_picture=" + "$_profile_picture" + ", ");
+    buffer.write("isAvailable=" + (_isAvailable != null ? _isAvailable!.toString() : "null") + ", ");
+    buffer.write("online=" + (_online != null ? _online!.toString() : "null") + ", ");
+    buffer.write("currentCall=" + "$_currentCall" + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -244,7 +268,7 @@ class User extends amplify_core.Model {
     return buffer.toString();
   }
   
-  User copyWith({String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
+  User copyWith({String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
     return User._internal(
       userId: userId,
       name: name ?? this.name,
@@ -257,6 +281,9 @@ class User extends amplify_core.Model {
       radius: radius ?? this.radius,
       pictures: pictures ?? this.pictures,
       profile_picture: profile_picture ?? this.profile_picture,
+      isAvailable: isAvailable ?? this.isAvailable,
+      online: online ?? this.online,
+      currentCall: currentCall ?? this.currentCall,
       likes: likes ?? this.likes,
       likedBy: likedBy ?? this.likedBy,
       matches: matches ?? this.matches,
@@ -278,6 +305,9 @@ class User extends amplify_core.Model {
     ModelFieldValue<int?>? radius,
     ModelFieldValue<List<String>?>? pictures,
     ModelFieldValue<String?>? profile_picture,
+    ModelFieldValue<bool?>? isAvailable,
+    ModelFieldValue<bool?>? online,
+    ModelFieldValue<String?>? currentCall,
     ModelFieldValue<List<UserLike>?>? likes,
     ModelFieldValue<List<UserLike>?>? likedBy,
     ModelFieldValue<List<UserMatch>?>? matches,
@@ -299,6 +329,9 @@ class User extends amplify_core.Model {
       radius: radius == null ? this.radius : radius.value,
       pictures: pictures == null ? this.pictures : pictures.value,
       profile_picture: profile_picture == null ? this.profile_picture : profile_picture.value,
+      isAvailable: isAvailable == null ? this.isAvailable : isAvailable.value,
+      online: online == null ? this.online : online.value,
+      currentCall: currentCall == null ? this.currentCall : currentCall.value,
       likes: likes == null ? this.likes : likes.value,
       likedBy: likedBy == null ? this.likedBy : likedBy.value,
       matches: matches == null ? this.matches : matches.value,
@@ -326,6 +359,9 @@ class User extends amplify_core.Model {
       _radius = (json['radius'] as num?)?.toInt(),
       _pictures = json['pictures']?.cast<String>(),
       _profile_picture = json['profile_picture'],
+      _isAvailable = json['isAvailable'],
+      _online = json['online'],
+      _currentCall = json['currentCall'],
       _likes = json['likes']  is Map
         ? (json['likes']['items'] is List
           ? (json['likes']['items'] as List)
@@ -434,7 +470,7 @@ class User extends amplify_core.Model {
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'userId': _userId, 'name': _name, 'age': _age, 'gender': _gender, 'gender_preference': _gender_preference, 'age_preference': _age_preference, 'location': _location?.toJson(), 'aboutMe': _aboutMe, 'radius': _radius, 'pictures': _pictures, 'profile_picture': _profile_picture, 'likes': _likes?.map((UserLike? e) => e?.toJson()).toList(), 'likedBy': _likedBy?.map((UserLike? e) => e?.toJson()).toList(), 'matches': _matches?.map((UserMatch? e) => e?.toJson()).toList(), 'matchedBy': _matchedBy?.map((UserMatch? e) => e?.toJson()).toList(), 'dislikes': _dislikes?.map((UserDislike? e) => e?.toJson()).toList(), 'dislikedBy': _dislikedBy?.map((UserDislike? e) => e?.toJson()).toList(), 'callList': _callList?.map((Call? e) => e?.toJson()).toList(), 'called': _called?.map((Call? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'userId': _userId, 'name': _name, 'age': _age, 'gender': _gender, 'gender_preference': _gender_preference, 'age_preference': _age_preference, 'location': _location?.toJson(), 'aboutMe': _aboutMe, 'radius': _radius, 'pictures': _pictures, 'profile_picture': _profile_picture, 'isAvailable': _isAvailable, 'online': _online, 'currentCall': _currentCall, 'likes': _likes?.map((UserLike? e) => e?.toJson()).toList(), 'likedBy': _likedBy?.map((UserLike? e) => e?.toJson()).toList(), 'matches': _matches?.map((UserMatch? e) => e?.toJson()).toList(), 'matchedBy': _matchedBy?.map((UserMatch? e) => e?.toJson()).toList(), 'dislikes': _dislikes?.map((UserDislike? e) => e?.toJson()).toList(), 'dislikedBy': _dislikedBy?.map((UserDislike? e) => e?.toJson()).toList(), 'callList': _callList?.map((Call? e) => e?.toJson()).toList(), 'called': _called?.map((Call? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
@@ -449,6 +485,9 @@ class User extends amplify_core.Model {
     'radius': _radius,
     'pictures': _pictures,
     'profile_picture': _profile_picture,
+    'isAvailable': _isAvailable,
+    'online': _online,
+    'currentCall': _currentCall,
     'likes': _likes,
     'likedBy': _likedBy,
     'matches': _matches,
@@ -473,6 +512,9 @@ class User extends amplify_core.Model {
   static final RADIUS = amplify_core.QueryField(fieldName: "radius");
   static final PICTURES = amplify_core.QueryField(fieldName: "pictures");
   static final PROFILE_PICTURE = amplify_core.QueryField(fieldName: "profile_picture");
+  static final ISAVAILABLE = amplify_core.QueryField(fieldName: "isAvailable");
+  static final ONLINE = amplify_core.QueryField(fieldName: "online");
+  static final CURRENTCALL = amplify_core.QueryField(fieldName: "currentCall");
   static final LIKES = amplify_core.QueryField(
     fieldName: "likes",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'UserLike'));
@@ -580,6 +622,24 @@ class User extends amplify_core.Model {
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
       key: User.PROFILE_PICTURE,
+      isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: User.ISAVAILABLE,
+      isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.bool)
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: User.ONLINE,
+      isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.bool)
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: User.CURRENTCALL,
       isRequired: false,
       ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));

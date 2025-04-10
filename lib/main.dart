@@ -45,8 +45,58 @@ Future<void> _configureAmplify() async {
   }
 }
 
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
 
-class MyApp extends StatelessWidget {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _setOnlineStatus(true);
+  }
+
+  @override
+  void dispose() {
+    _setOnlineStatus(false);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _setOnlineStatus(true);
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _setOnlineStatus(false);
+    }
+  }
+
+  Future<void> _setOnlineStatus(bool online) async {
+    try {
+      final session = await Amplify.Auth.fetchAuthSession();
+      if (!session.isSignedIn) return;
+
+      final user = await Amplify.Auth.getCurrentUser();
+      final userId = user.userId;
+
+      final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
+      final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
+      final existingUser = getUserResponse.data;
+
+      if (existingUser != null) {
+        final updatedUser = existingUser.copyWith(online: online);
+        final updateRequest = ModelMutations.update<User>(updatedUser);
+        await Amplify.API.mutate(request: updateRequest).response;
+        safePrint('Set user $userId online status to $online');
+      }
+    } catch (e) {
+      safePrint('Error setting online status: $e');
+    }
+  }
+
   Future<String> _determineInitialRoute() async {
     try {
       final session = await Amplify.Auth.fetchAuthSession();
@@ -57,12 +107,7 @@ class MyApp extends StatelessWidget {
 
       final user = await Amplify.Auth.getCurrentUser();
       final userId = user.userId;
-      safePrint('Checking user profile for: $userId');
-
-      final getUserRequest = ModelQueries.get(
-        User.classType,
-        UserModelIdentifier(userId: userId),
-      );
+      final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
       final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
 
       if (getUserResponse.data != null && getUserResponse.data!.name != null) {
@@ -74,7 +119,7 @@ class MyApp extends StatelessWidget {
       }
     } catch (e) {
       safePrint('Error determining route: $e');
-      return '/signup'; // Fallback to signup on error
+      return '/signup';
     }
   }
 
@@ -82,28 +127,24 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Your App Name',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      initialRoute: '/', // Placeholder until we determine the route
+      theme: ThemeData(primarySwatch: Colors.blue),
+      initialRoute: '/',
       routes: {
-        '/signup': (context) => SignupScreen(), // Your signup screen
-        '/call': (context) => CallPage(), // Your call page
+        '/signup': (context) => SignupScreen(),
+        '/call': (context) => CallPage(),
       },
       home: FutureBuilder<String>(
         future: _determineInitialRoute(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ); // Loading screen while checking
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           if (snapshot.hasData) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Navigator.pushReplacementNamed(context, snapshot.data!);
             });
           }
-          return Container(); // Temporary empty container
+          return Container();
         },
       ),
     );
