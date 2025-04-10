@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:amplify_app/pages/call_page.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -39,10 +40,13 @@ class _SignupScreenState extends State<SignupScreen> {
         location: provider.userData['location'] as dynamic,
         aboutMe: provider.userData['aboutMe'] as String,
       );
-      Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
-    }
+      Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => CallPage()),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
+  }
   }
 
   @override

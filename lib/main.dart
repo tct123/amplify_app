@@ -1,4 +1,5 @@
 import 'package:amplify_app/models/ModelProvider.dart';
+import 'package:amplify_app/pages/call_page.dart';
 import 'package:amplify_app/pages/signup_screen.dart'; // New combined screen
 import 'package:amplify_app/providers/signup_provider.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
@@ -17,7 +18,7 @@ Future<void> main() async {
     runApp(
       ChangeNotifierProvider<SignupProvider>(
         create: (_) => SignupProvider(),
-        child: const MyApp(),
+        child: MyApp(),
       ),
     );
   } on AmplifyException catch (e) {
@@ -44,17 +45,66 @@ Future<void> _configureAmplify() async {
   }
 }
 
+
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  Future<String> _determineInitialRoute() async {
+    try {
+      final session = await Amplify.Auth.fetchAuthSession();
+      if (!session.isSignedIn) {
+        safePrint('User not signed in, routing to signup');
+        return '/signup';
+      }
+
+      final user = await Amplify.Auth.getCurrentUser();
+      final userId = user.userId;
+      safePrint('Checking user profile for: $userId');
+
+      final getUserRequest = ModelQueries.get(
+        User.classType,
+        UserModelIdentifier(userId: userId),
+      );
+      final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
+
+      if (getUserResponse.data != null && getUserResponse.data!.name != null) {
+        safePrint('User profile exists, routing to call page');
+        return '/call';
+      } else {
+        safePrint('User profile incomplete, routing to signup');
+        return '/signup';
+      }
+    } catch (e) {
+      safePrint('Error determining route: $e');
+      return '/signup'; // Fallback to signup on error
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Authenticator(
-      child: MaterialApp(
-        title: 'Call App',
-        theme: ThemeData(primarySwatch: Colors.blue),
-        builder: Authenticator.builder(),
-        home: SignupScreen(), // Single signup screen
+    return MaterialApp(
+      title: 'Your App Name',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      initialRoute: '/', // Placeholder until we determine the route
+      routes: {
+        '/signup': (context) => SignupScreen(), // Your signup screen
+        '/call': (context) => CallPage(), // Your call page
+      },
+      home: FutureBuilder<String>(
+        future: _determineInitialRoute(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ); // Loading screen while checking
+          }
+          if (snapshot.hasData) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacementNamed(context, snapshot.data!);
+            });
+          }
+          return Container(); // Temporary empty container
+        },
       ),
     );
   }

@@ -17,6 +17,9 @@ const schema = a.schema({
     radius: a.integer(),
     pictures: a.string().array(),
     profile_picture: a.string(),
+    isAvailable: { type: 'Boolean', required: true, default: true },
+    online: { type: 'Boolean', required: true, default: false }, // New field
+    currentCall: { type: 'ID' }
     // Many-to-many relationships via join models.
     likes: a.hasMany('UserLike', 'likerId'),
     likedBy: a.hasMany('UserLike', 'likedId'),
@@ -87,6 +90,7 @@ const schema = a.schema({
     calledId: a.id().required(),
     caller: a.belongsTo('User', 'callerId'),
     called: a.belongsTo('User', 'calledId'),
+    status: { type: 'String', required: true, default: 'active' }
  //   eventId: a.hasOne('Event', 'eventId')
   })
   .identifier(['id'])
