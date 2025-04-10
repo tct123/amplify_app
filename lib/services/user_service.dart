@@ -30,7 +30,6 @@ class UserService {
       return url;
     } on StorageException catch (e) {
       safePrint('Storage error: ${e.message}');
-      safePrint('Details: ${e}');
       safePrint('Underlying exception: ${e.underlyingException}');
       throw Exception('Error uploading profile picture: ${e.message}');
     } catch (e) {
@@ -58,6 +57,7 @@ class UserService {
     final authType = APIAuthorizationType.userPools;
 
     safePrint('User Pool ID from Cognito: $userId');
+    safePrint('Session signed in: ${session.isSignedIn}');
     
     // Upload profile picture
     final profilePictureUrl = await _uploadProfilePicture(profilePicture);
@@ -68,6 +68,7 @@ class UserService {
     final existingUser = getUserResponse.data;
 
     if (existingUser == null) {
+      safePrint('Creating new user with ID: $userId');
       final newUser = User(
         userId: userId,
         name: name,
@@ -82,9 +83,13 @@ class UserService {
       final createRequest = ModelMutations.create<User>(newUser, authorizationMode: authType);
       final createResponse = await Amplify.API.mutate(request: createRequest).response;
       if (createResponse.hasErrors) {
+        safePrint('Create user errors: ${createResponse.errors}');
         throw Exception('Error creating user: ${createResponse.errors}');
+      } else {
+        safePrint('User created successfully');
       }
     } else {
+      safePrint('Updating existing user with ID: $userId');
       final updatedUser = existingUser.copyWith(
         name: name,
         age: age,
@@ -98,7 +103,10 @@ class UserService {
       final updateRequest = ModelMutations.update<User>(updatedUser, authorizationMode: authType);
       final updateResponse = await Amplify.API.mutate(request: updateRequest).response;
       if (updateResponse.hasErrors) {
+        safePrint('Update user errors: ${updateResponse.errors}');
         throw Exception('Error updating user: ${updateResponse.errors}');
+      } else {
+        safePrint('User updated successfully');
       }
     }
   }
