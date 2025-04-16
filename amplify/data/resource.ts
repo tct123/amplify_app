@@ -32,6 +32,9 @@ const schema = a.schema({
     called: a.hasMany('Call', 'calledId'),
   })
   .identifier(['userId'])
+  .secondaryIndexes((index) => [
+    index('isAvailable-index').queryField('usersByIsAvailable').key(['isAvailable']),
+  ])
   .authorization(allow => [allow.authenticated()]),
 
   UserLike: a.model({
