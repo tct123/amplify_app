@@ -35,7 +35,7 @@ class _SignupStep2State extends State<SignupStep2> {
           DropdownButtonFormField<String>(
             value: _genderPreference,
             decoration: const InputDecoration(labelText: 'Gender Preference'),
-            items: ['Hetero', 'Homo', 'Bi', 'Other']
+            items: ['Man', 'Woman', 'Man or Woman', 'Other']
                 .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                 .toList(),
             onChanged: (value) => setState(() => _genderPreference = value),

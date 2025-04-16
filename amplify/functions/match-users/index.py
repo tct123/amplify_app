@@ -5,7 +5,7 @@ from datetime import datetime
 from boto3.dynamodb.conditions import Key, Attr
 
 dynamodb = boto3.resource('dynamodb', region_name='eu-north-1')
-TABLE_NAME = 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE'  # Replace this later
+TABLE_NAME = 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE'
 
 def handler(event, context):
     user_id = event['arguments']['userId']
@@ -19,14 +19,15 @@ def handler(event, context):
         if not current_user or not current_user['isAvailable'] or not current_user['online']:
             return {'error': 'User is not available or offline'}
 
-        # 2. Find a match
-        matches_response = table.query(
-            IndexName='isAvailable-index',
-            KeyConditionExpression=Key('isAvailable').eq(True),
-            FilterExpression=Attr('userId').ne(user_id) & 
-                            Attr('online').eq(True) & 
-                            Attr('gender').eq(current_user['gender_preference']) &
-                            Attr('age').between(current_user['age'] - 5, current_user['age'] + 5)
+        # 2. Find a match using Scan
+        matches_response = table.scan(
+            FilterExpression=(
+                Attr('userId').ne(user_id) &
+                Attr('isAvailable').eq(True) &
+                Attr('online').eq(True) &
+                Attr('gender').eq(current_user['gender_preference']) &
+                Attr('age').between(current_user['age'] - 5, current_user['age'] + 5)
+            )
         )
         matches = matches_response.get('Items', [])
 
@@ -80,7 +81,7 @@ def is_within_distance(loc1, loc2, max_distance):
         return True
     R = 6371  # Earth radius in km
     dLat = math.radians(loc2['lat'] - loc1['lat'])
-    dLon = math.radians(loc2['lon'] - loc1['lon'])
+    dLon = math.radians(loc2['long'] - loc1['long'])
     a = math.sin(dLat/2) * math.sin(dLat/2) + \
         math.cos(math.radians(loc1['lat'])) * math.cos(math.radians(loc2['lat'])) * \
         math.sin(dLon/2) * math.sin(dLon/2)
