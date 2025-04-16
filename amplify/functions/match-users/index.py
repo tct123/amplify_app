@@ -44,11 +44,13 @@ def handler(event, context):
         # 3. Create Call entry
         call_id = f"{user_id}-{match['userId']}-{int(datetime.now().timestamp())}"
         call_table = dynamodb.Table(CALL_TABLE_NAME)
+        now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')  # ISO 8601 with Z
         call_table.put_item(Item={
             'id': call_id,
             'callerId': user_id,
             'calledId': match['userId'],
-            'createdAt': datetime.utcnow().isoformat(),
+            'createdAt': now,
+            'updatedAt': now,
             'status': 'active',
             '__typename': 'Call'
         })
