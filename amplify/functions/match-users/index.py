@@ -5,22 +5,23 @@ from datetime import datetime
 from boto3.dynamodb.conditions import Key, Attr
 
 dynamodb = boto3.resource('dynamodb', region_name='eu-north-1')
-TABLE_NAME = 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE'
+USER_TABLE_NAME = 'User-wzrxyxdpvjfbvd57ueidm4kch4-NONE'
+CALL_TABLE_NAME = 'Call-wzrxyxdpvjfbvd57ueidm4kch4-NONE'
 
 def handler(event, context):
     user_id = event['arguments']['userId']
 
     try:
-        table = dynamodb.Table(TABLE_NAME)
+        user_table = dynamodb.Table(USER_TABLE_NAME)
 
         # 1. Get current user's details
-        user_response = table.get_item(Key={'userId': user_id})
+        user_response = user_table.get_item(Key={'userId': user_id})
         current_user = user_response.get('Item')
         if not current_user or not current_user['isAvailable'] or not current_user['online']:
             return {'error': 'User is not available or offline'}
 
         # 2. Find a match using Scan
-        matches_response = table.scan(
+        matches_response = user_table.scan(
             FilterExpression=(
                 Attr('userId').ne(user_id) &
                 Attr('isAvailable').eq(True) &
@@ -42,7 +43,8 @@ def handler(event, context):
 
         # 3. Create Call entry
         call_id = f"{user_id}-{match['userId']}-{int(datetime.now().timestamp())}"
-        table.put_item(Item={
+        call_table = dynamodb.Table(CALL_TABLE_NAME)
+        call_table.put_item(Item={
             'id': call_id,
             'callerId': user_id,
             'calledId': match['userId'],
@@ -52,12 +54,12 @@ def handler(event, context):
         })
 
         # 4. Update users' availability
-        table.update_item(
+        user_table.update_item(
             Key={'userId': user_id},
             UpdateExpression='SET isAvailable = :false, currentCall = :callId',
             ExpressionAttributeValues={':false': False, ':callId': call_id}
         )
-        table.update_item(
+        user_table.update_item(
             Key={'userId': match['userId']},
             UpdateExpression='SET isAvailable = :false, currentCall = :callId',
             ExpressionAttributeValues={':false': False, ':callId': call_id}

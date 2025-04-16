@@ -1,6 +1,6 @@
 import 'package:amplify_app/models/ModelProvider.dart';
 import 'package:amplify_app/pages/call_page.dart';
-import 'package:amplify_app/pages/signup_screen.dart'; // New combined screen
+import 'package:amplify_app/pages/signup_screen.dart';
 import 'package:amplify_app/providers/signup_provider.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_authenticator/amplify_authenticator.dart';
@@ -97,56 +97,48 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  Future<String> _determineInitialRoute() async {
+  Future<Widget> _getHomeWidget() async {
     try {
-      final session = await Amplify.Auth.fetchAuthSession();
-      if (!session.isSignedIn) {
-        safePrint('User not signed in, routing to signup');
-        return '/signup';
-      }
-
-
       final user = await Amplify.Auth.getCurrentUser();
       final userId = user.userId;
       final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
       final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
+      final existingUser = getUserResponse.data;
 
-      if (getUserResponse.data != null && getUserResponse.data!.name != null) {
-        safePrint('User profile exists, routing to call page');
-        return '/call';
+      if (existingUser != null &&
+          existingUser.name != null &&
+          existingUser.age != null &&
+          (existingUser.profile_picture != null || existingUser.profile_picture != '')) {
+        safePrint('User profile complete, routing to call page');
+        return CallPage();
       } else {
-        safePrint('User profile incomplete, routing to signup');
-        return '/signup';
+        safePrint('User profile incomplete or missing, routing to signup');
+        return SignupScreen();
       }
     } catch (e) {
-      safePrint('Error determining route: $e');
-      return '/signup';
+      safePrint('Error determining home widget: $e');
+      return SignupScreen();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Your App Name',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/',
-      routes: {
-        '/signup': (context) => SignupScreen(),
-        '/call': (context) => CallPage(),
-      },
-      home: FutureBuilder<String>(
-        future: _determineInitialRoute(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          if (snapshot.hasData) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacementNamed(context, snapshot.data!);
-            });
-          }
-          return Container();
-        },
+    return Authenticator(
+      child: MaterialApp(
+        title: 'Your App Name',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        builder: Authenticator.builder(),
+        home: Builder(
+          builder: (context) => FutureBuilder<Widget>(
+            future: _getHomeWidget(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              return snapshot.data ?? SignupScreen();
+            },
+          ),
+        ),
       ),
     );
   }
