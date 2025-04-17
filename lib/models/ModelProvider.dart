@@ -40,7 +40,7 @@ export 'UserMatch.dart';
 
 class ModelProvider implements amplify_core.ModelProviderInterface {
   @override
-  String version = "d8291d28baec3d8fc6bc47153ed17cba";
+  String version = "addf222981a711bc8b2fab84bbd126b9";
   @override
   List<amplify_core.ModelSchema> modelSchemas = [Call.schema, User.schema, UserDislike.schema, UserLike.schema, UserMatch.schema];
   @override

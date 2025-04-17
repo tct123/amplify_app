@@ -21,6 +21,7 @@ const schema = a.schema({
     isAvailable: a.boolean().default('true'),
     online: a.boolean().default('false'), // New field
     currentCall: a.string(),
+    matchmakingLock: a.string(),
     // Many-to-many relationships via join models.
     likes: a.hasMany('UserLike', 'likerId'),
     likedBy: a.hasMany('UserLike', 'likedId'),
