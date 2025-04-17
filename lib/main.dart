@@ -84,13 +84,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
       final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
-      final existingUser = getUserResponse.data;
+      User? existingUser = getUserResponse.data;
 
       if (existingUser != null) {
-        final updatedUser = existingUser.copyWith(online: online);
+        final updatedUser = existingUser.copyWith(
+          online: online,
+          isAvailable: true, // Always available unless in a call
+          currentCall: online ? null : null, // Clear call when online or offline
+        );
         final updateRequest = ModelMutations.update<User>(updatedUser);
         await Amplify.API.mutate(request: updateRequest).response;
-        safePrint('Set user $userId online status to $online');
+        safePrint('Set user $userId online: $online, isAvailable: ${updatedUser.isAvailable}, currentCall: ${updatedUser.currentCall}');
+      } else if (online) {
+        final newUser = User(
+          userId: userId,
+          isAvailable: true,
+          online: true,
+          currentCall: null,
+        );
+        final createRequest = ModelMutations.create<User>(newUser);
+        await Amplify.API.mutate(request: createRequest).response;
+        safePrint('Created user $userId with online: true, isAvailable: true');
       }
     } catch (e) {
       safePrint('Error setting online status: $e');
@@ -107,8 +121,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       if (existingUser != null &&
           existingUser.name != null &&
-          existingUser.age != null &&
-          (existingUser.profile_picture != null || existingUser.profile_picture != '')) {
+          (existingUser.profile_picture != '' || existingUser.profile_picture != null) &&
+          existingUser.gender != null) {
         safePrint('User profile complete, routing to call page');
         return CallPage();
       } else {
