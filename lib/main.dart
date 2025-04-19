@@ -87,20 +87,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       User? existingUser = getUserResponse.data;
 
       if (existingUser != null) {
-        final updatedUser = existingUser.copyWith(
+        final User updatedUser = existingUser.copyWith(
           online: online,
-          isAvailable: true, // Always available unless in a call
-          currentCall: online ? null : null, // Clear call when online or offline
+          isAvailable: online ? true : true, // Always available unless in a call
+          currentCall: '', // Clear call when online or offline
+          matchmakingLock: '', // Clear lock
         );
         final updateRequest = ModelMutations.update<User>(updatedUser);
         await Amplify.API.mutate(request: updateRequest).response;
-        safePrint('Set user $userId online: $online, isAvailable: ${updatedUser.isAvailable}, currentCall: ${updatedUser.currentCall}');
+        safePrint('Set user: $userId online: $online, isAvailable: ${updatedUser.isAvailable}, currentCall: ${updatedUser.currentCall}');
       } else if (online) {
         final newUser = User(
           userId: userId,
           isAvailable: true,
           online: true,
           currentCall: null,
+          matchmakingLock: null,
         );
         final createRequest = ModelMutations.create<User>(newUser);
         await Amplify.API.mutate(request: createRequest).response;
