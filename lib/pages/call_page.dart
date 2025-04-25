@@ -1,3 +1,6 @@
+
+// lib/pages/call_page.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
@@ -15,8 +18,8 @@ class CallPage extends StatefulWidget {
 }
 
 class _CallPageState extends State<CallPage> {
-  WebSocketChannel? _webSocketChannel;
-  bool _isJoiningMatchmaking = false;
+  WebSocketChannel? _channel;
+  bool _isConnecting = true;
   bool _isCallActive = false;
   String? _callId;
   String? _matchedUserName;
@@ -24,7 +27,6 @@ class _CallPageState extends State<CallPage> {
   Timer? _debounceTimer;
   final bool _debug = true;
 
-  // "Would you rather" options
   final List<String> options = [
     "go skiing or snorkelling?",
     "eat pizza or burgers?",
@@ -38,51 +40,89 @@ class _CallPageState extends State<CallPage> {
   void initState() {
     super.initState();
     _connectWebSocket();
+
+    // === DEBUG: force joinMatchmaking after 2 seconds to verify route wiring ===
+    Future.delayed(Duration(seconds: 2), () async {
+      final user = await Amplify.Auth.getCurrentUser();
+      final msg = jsonEncode({
+        'action': 'joinMatchmaking',
+        'userId': user.userId,
+      });
+      _channel?.sink.add(msg);
+      safePrint('DEBUG: forced joinMatchmaking → $msg');
+    });
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
-    _webSocketChannel?.sink.close();
+    _channel?.sink.close();
     super.dispose();
   }
 
   void safePrint(String message) {
-    if (_debug) {
-      print('${DateTime.now().toIso8601String()}: $message');
-    }
+    if (_debug) print('${DateTime.now().toIso8601String()}: $message');
   }
 
   void _connectWebSocket() {
-    if (!mounted) return;
-    try {
-      _webSocketChannel?.sink.close();
-      _webSocketChannel = WebSocketChannel.connect(
-        Uri.parse('wss://gxwn07m3ma.execute-api.eu-north-1.amazonaws.com/prod/'),
-      );
-      safePrint('WebSocket connected');
-      _webSocketChannel!.stream.listen(_onWebSocketMessage,
-        onError: _onWebSocketError,
-        onDone: _onWebSocketDone,
-      );
-      _joinMatchmaking();
-    } catch (e) {
-      safePrint('WebSocket connection error: $e');
-      Future.delayed(Duration(seconds: 5), _connectWebSocket);
-    }
+    _channel?.sink.close();
+    _channel = WebSocketChannel.connect(
+      Uri.parse('wss://gxwn07m3ma.execute-api.eu-north-1.amazonaws.com/prod/'),
+    );
+    _channel!.stream.listen(
+      _onWebSocketMessage,
+      onError: _onWebSocketError,
+      onDone: _onWebSocketDone,
+    );
+    _sendClearState();
+  }
+
+  void _send(Map<String, dynamic> msg) {
+    final jsonMsg = jsonEncode(msg);
+    _channel?.sink.add(jsonMsg);
+    safePrint('Sent: $jsonMsg');
+  }
+
+  void _sendClearState() {
+    Amplify.Auth.getCurrentUser().then((user) {
+      _send({'action': 'clearState', 'userId': user.userId});
+    }).catchError((e) {
+      safePrint('Error sending clearState: $e');
+    });
   }
 
   void _onWebSocketMessage(dynamic message) {
     safePrint('Received: $message');
     final data = jsonDecode(message as String);
-    if (data['action'] == 'matchFound') {
-      setState(() {
-        _callId = data['callId'] as String;
-        _matchedUserName = data['matchedUser']['name'] as String;
-        _matchedUserProfilePicture = data['matchedUser']['profilePicture'] as String;
-        _isCallActive = true;
-      });
-      safePrint('Matched with $_matchedUserName');
+
+    // Ignore Forbidden errors
+    if (data['message'] == 'Forbidden') {
+      safePrint('Ignoring Forbidden response');
+      return;
+    }
+
+    final action = data['action'];
+    switch (action) {
+      case 'stateCleared':
+        setState(() {
+          _isConnecting = false;
+        });
+        _joinMatchmaking();
+        break;
+      case 'matchFound':
+        setState(() {
+          _callId = data['callId'] as String;
+          _matchedUserName = data['matchedUser']['name'] as String;
+          _matchedUserProfilePicture =
+              data['matchedUser']['profilePicture'] as String;
+          _isCallActive = true;
+        });
+        break;
+      case 'leftCall':
+        Navigator.pop(context);
+        break;
+      default:
+        safePrint('Unhandled action: $action');
     }
   }
 
@@ -97,29 +137,41 @@ class _CallPageState extends State<CallPage> {
   }
 
   void _joinMatchmaking() {
-    if (_isJoiningMatchmaking || _isCallActive) return;
+    if (_isCallActive) return;
+    if (_debounceTimer?.isActive ?? false) return;
     _debounceTimer = Timer(Duration(seconds: 2), () {
       Amplify.Auth.getCurrentUser().then((user) {
-        final msg = jsonEncode({
-          'action': 'joinMatchmaking',
-          'userId': user.userId,
-        });
-        _webSocketChannel?.sink.add(msg);
-        safePrint('Joining matchmaking');
-        setState(() => _isJoiningMatchmaking = true);
+        _send({'action': 'joinMatchmaking', 'userId': user.userId});
       }).catchError((e) {
-        safePrint('Matchmaking error: $e');
+        safePrint('Error in joinMatchmaking: $e');
       });
     });
   }
 
-  void _nextOption() => setState(() => currentIndex = (currentIndex + 1) % options.length);
-  void _previousOption() => setState(() => currentIndex = (currentIndex - 1 + options.length) % options.length);
+  void _leaveCall() {
+    if (_callId == null) {
+      Navigator.pop(context);
+      return;
+    }
+    Amplify.Auth.getCurrentUser().then((user) {
+      _send({
+        'action': 'leaveCall',
+        'userId': user.userId,
+        'callId': _callId
+      });
+    }).catchError((e) {
+      safePrint('Error sending leaveCall: $e');
+    });
+  }
+
+  void _nextOption() => setState(
+      () => currentIndex = (currentIndex + 1) % options.length);
+  void _previousOption() => setState(() => currentIndex =
+      (currentIndex - 1 + options.length) % options.length);
 
   @override
   Widget build(BuildContext context) {
-    // 1) If we haven’t yet matched, just show a spinner
-    if (!_isCallActive) {
+    if (_isConnecting) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
@@ -129,12 +181,22 @@ class _CallPageState extends State<CallPage> {
         ),
       );
     }
+    if (!_isCallActive) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text(
+            'Finding Match...',
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
+        ),
+      );
+    }
 
-    // 2) Once matched, show their profile pic as background and the full UI
+    // Matched UI
     return Scaffold(
       body: Stack(
         children: [
-          // Background: matched user’s picture
           if (_matchedUserProfilePicture != null)
             Positioned.fill(
               child: Image.network(
@@ -142,16 +204,12 @@ class _CallPageState extends State<CallPage> {
                 fit: BoxFit.cover,
               ),
             ),
-
-          // Blur + dark overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(color: Colors.black.withOpacity(0.4)),
             ),
           ),
-
-          // Top-left: matched user’s name
           Positioned(
             top: 40,
             left: 20,
@@ -164,36 +222,31 @@ class _CallPageState extends State<CallPage> {
               ),
             ),
           ),
-
-          // Top-right: leave button
           Positioned(
             top: 40,
             right: 20,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _leaveCall,
               style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.all(Colors.red),
               ),
               child: Text(
-                "Leave",
-                style: TextStyle(fontSize: 18, color: Colors.white),
+                'Leave',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ),
-
-          // Center: call widget only
           Align(
             alignment: Alignment.center,
             child: JoinChannelAudio(channelID: _callId!),
           ),
-
-          // Bottom: would‑you‑rather card
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 40),
               child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 8,
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.9,
@@ -202,14 +255,17 @@ class _CallPageState extends State<CallPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Would you rather",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        'Would you rather',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(icon: Icon(Icons.arrow_left), onPressed: _previousOption),
+                          IconButton(
+                              icon: Icon(Icons.arrow_left),
+                              onPressed: _previousOption),
                           Expanded(
                             child: Text(
                               options[currentIndex],
@@ -217,7 +273,9 @@ class _CallPageState extends State<CallPage> {
                               style: TextStyle(fontSize: 16),
                             ),
                           ),
-                          IconButton(icon: Icon(Icons.arrow_right), onPressed: _nextOption),
+                          IconButton(
+                              icon: Icon(Icons.arrow_right),
+                              onPressed: _nextOption),
                         ],
                       ),
                     ],
@@ -231,4 +289,3 @@ class _CallPageState extends State<CallPage> {
     );
   }
 }
-
