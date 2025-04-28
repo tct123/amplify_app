@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:amplify_app/pages/join_call_page.dart';
@@ -26,7 +27,6 @@ class _CallPageState extends State<CallPage> {
   Timer? _debounceTimer;
   final bool _debug = true;
 
-  // example “would you rather” options
   final List<String> options = [
     "go skiing or snorkelling?",
     "eat pizza or burgers?",
@@ -41,8 +41,8 @@ class _CallPageState extends State<CallPage> {
     super.initState();
     _connectWebSocket();
 
-    // DEBUG: auto-join matchmaking after 2s
-    Future.delayed(Duration(seconds: 2), () async {
+    // DEBUG: force joinMatchmaking after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () async {
       final user = await Amplify.Auth.getCurrentUser();
       final msg = jsonEncode({
         'action': 'joinMatchmaking',
@@ -91,61 +91,59 @@ class _CallPageState extends State<CallPage> {
     });
   }
 
-  void _onWebSocketMessage(dynamic message) {
+  Future<void> _onWebSocketMessage(dynamic message) async {
     safePrint('Received: $message');
-    final data = jsonDecode(message as String);
+    final data = jsonDecode(message as String) as Map<String, dynamic>;
 
-    // ignore Forbidden responses
-    if (data['message'] == 'Forbidden') {
-      safePrint('Ignoring Forbidden response');
+    if (data['message'] == 'Forbidden') return;
+
+    // step 1: clearState ack
+    if (data['action'] == 'stateCleared') {
+      setState(() => _isConnecting = false);
+      _joinMatchmaking();
       return;
     }
 
-    // --- new: if payload has callId + otherUser, treat as match found ---
-    if (data.containsKey('callId') && data.containsKey('otherUser')) {
+    // step 2: match payload (we now expect callId + otherUser map)
+    if (data.containsKey('callId')) {
+      final callId = data['callId'] as String;
       final other = data['otherUser'] as Map<String, dynamic>;
+      final otherName = other['name'] as String;
+      final key = other['profilePictureKey'] as String;
+
+
+
       setState(() {
-	_isConnecting = false; 
-        _callId = data['callId'] as String;
-        _matchedUserName = other['name'] as String;
-        _matchedUserProfilePicture = other['profilePicture'] as String;
+        _callId = callId;
+        _matchedUserName = otherName;
         _isCallActive = true;
+	_isConnecting = false;
       });
       return;
     }
 
-    // fall back to explicit actions
-    final action = data['action'] as String?;
-    switch (action) {
-      case 'stateCleared':
-        setState(() {
-          _isConnecting = false;
-        });
-        _joinMatchmaking();
-        break;
-      case 'leftCall':
-	_isConnecting = true;
-        Navigator.pop(context);
-        break;
-      default:
-        safePrint('Unhandled action: $action');
+    if (data['action'] == 'leftCall') {
+      Navigator.pop(context);
+      return;
     }
+
+    safePrint('Unhandled action: ${data['action']}');
   }
 
   void _onWebSocketError(error) {
     safePrint('WebSocket error: $error');
-    Future.delayed(Duration(seconds: 5), _connectWebSocket);
+    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
 
   void _onWebSocketDone() {
     safePrint('WebSocket closed');
-    Future.delayed(Duration(seconds: 5), _connectWebSocket);
+    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
 
   void _joinMatchmaking() {
     if (_isCallActive) return;
     if (_debounceTimer?.isActive ?? false) return;
-    _debounceTimer = Timer(Duration(seconds: 2), () {
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
       Amplify.Auth.getCurrentUser().then((user) {
         _send({'action': 'joinMatchmaking', 'userId': user.userId});
       }).catchError((e) {
@@ -170,28 +168,27 @@ class _CallPageState extends State<CallPage> {
     });
   }
 
-  void _nextOption() =>
-      setState(() => currentIndex = (currentIndex + 1) % options.length);
-  void _previousOption() =>
-      setState(() => currentIndex = (currentIndex - 1 + options.length) % options.length);
+  void _nextOption() => setState(
+      () => currentIndex = (currentIndex + 1) % options.length);
+  void _previousOption() => setState(() =>
+      currentIndex = (currentIndex - 1 + options.length) % options.length);
 
   @override
   Widget build(BuildContext context) {
     if (_isConnecting) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(
+        body: const Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation(Colors.white),
           ),
         ),
       );
     }
-
     if (!_isCallActive) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(
+        body: const Center(
           child: Text(
             'Finding Match...',
             style: TextStyle(color: Colors.white, fontSize: 24),
@@ -200,7 +197,6 @@ class _CallPageState extends State<CallPage> {
       );
     }
 
-    // matched UI
     return Scaffold(
       body: Stack(
         children: [
@@ -222,7 +218,7 @@ class _CallPageState extends State<CallPage> {
             left: 20,
             child: Text(
               _matchedUserName ?? '',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -237,7 +233,7 @@ class _CallPageState extends State<CallPage> {
               style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.all(Colors.red),
               ),
-              child: Text(
+              child: const Text(
                 'Leave',
                 style: TextStyle(color: Colors.white),
               ),
@@ -257,31 +253,31 @@ class _CallPageState extends State<CallPage> {
                 elevation: 8,
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      const Text(
                         'Would you rather',
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                              icon: Icon(Icons.arrow_left),
+                              icon: const Icon(Icons.arrow_left),
                               onPressed: _previousOption),
                           Expanded(
                             child: Text(
                               options[currentIndex],
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16),
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ),
                           IconButton(
-                              icon: Icon(Icons.arrow_right),
+                              icon: const Icon(Icons.arrow_right),
                               onPressed: _nextOption),
                         ],
                       ),
