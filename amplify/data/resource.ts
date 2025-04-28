@@ -113,6 +113,7 @@ const schema = a.schema({
     .authorization(allow => [allow.authenticated()])  // Specify who can access this query.
     .handler(a.handler.function(filterUsersFunctionHandler)),
 
+});
 
 export type Schema = ClientSchema<typeof schema>;
 
