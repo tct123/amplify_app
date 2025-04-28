@@ -1,161 +1,304 @@
-import 'package:amplify_app/models/ModelProvider.dart';
-import 'package:amplify_app/pages/call_page.dart';
-import 'package:amplify_app/pages/signup_screen.dart';
-import 'package:amplify_app/providers/signup_provider.dart';
+// lib/pages/call_page.dart
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:ui';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import 'package:amplify_authenticator/amplify_authenticator.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'amplify_outputs.dart';
-import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
+import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:amplify_app/pages/join_call_page.dart';
 
-Future<void> main() async {
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
-    await _configureAmplify();
-    runApp(
-      ChangeNotifierProvider<SignupProvider>(
-        create: (_) => SignupProvider(),
-        child: MyApp(),
-      ),
-    );
-  } on AmplifyException catch (e) {
-    runApp(
-      MaterialApp(
-        home: Scaffold(body: Center(child: Text("Error: ${e.message}"))),
-      ),
-    );
-  }
-}
+class CallPage extends StatefulWidget {
+  const CallPage({Key? key}) : super(key: key);
 
-Future<void> _configureAmplify() async {
-  try {
-    await Amplify.addPlugins([
-      AmplifyAuthCognito(),
-      AmplifyAPI(options: APIPluginOptions(modelProvider: ModelProvider.instance)),
-      AmplifyStorageS3(),
-    ]);
-    await Amplify.configure(amplifyConfig);
-    safePrint('Successfully configured Amplify');
-  } on Exception catch (e) {
-    safePrint('Error configuring Amplify: $e');
-    rethrow;
-  }
-}
-
-class MyApp extends StatefulWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  _CallPageState createState() => _CallPageState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class _CallPageState extends State<CallPage> {
+  WebSocketChannel? _channel;
+  bool _isConnecting = true;
+  bool _isCallActive = false;
+  String? _callId;
+  String? _matchedUserName;
+  String? _matchedUserProfilePicture;
+  Timer? _debounceTimer;
+  final bool _debug = true;
+
+  final List<String> options = [
+    "go skiing or snorkelling?",
+    "eat pizza or burgers?",
+    "travel to the mountains or the beach?",
+    "read a book or watch a movie?",
+    "stay in or go out?"
+  ];
+  int currentIndex = 0;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _setOnlineStatus(true);
+    _connectWebSocket();
+
+    // DEBUG: force joinMatchmaking after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () async {
+      final user = await Amplify.Auth.getCurrentUser();
+      final msg = jsonEncode({
+        'action': 'joinMatchmaking',
+        'userId': user.userId,
+      });
+      _channel?.sink.add(msg);
+      safePrint('DEBUG: forced joinMatchmaking → $msg');
+    });
   }
 
   @override
   void dispose() {
-    _setOnlineStatus(false);
-    WidgetsBinding.instance.removeObserver(this);
+    _debounceTimer?.cancel();
+    _channel?.sink.close();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _setOnlineStatus(true);
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      _setOnlineStatus(false);
-    }
+  void safePrint(String message) {
+    if (_debug) print('${DateTime.now().toIso8601String()}: $message');
   }
 
-  Future<void> _setOnlineStatus(bool online) async {
-    try {
-      final session = await Amplify.Auth.fetchAuthSession();
-      if (!session.isSignedIn) return;
+  void _connectWebSocket() {
+    _channel?.sink.close();
+    _channel = WebSocketChannel.connect(
+      Uri.parse('wss://gxwn07m3ma.execute-api.eu-north-1.amazonaws.com/prod/'),
+    );
+    _channel!.stream.listen(
+      _onWebSocketMessage,
+      onError: _onWebSocketError,
+      onDone: _onWebSocketDone,
+    );
+    _sendClearState();
+  }
 
-      final user = await Amplify.Auth.getCurrentUser();
-      final userId = user.userId;
+  void _send(Map<String, dynamic> msg) {
+    final jsonMsg = jsonEncode(msg);
+    _channel?.sink.add(jsonMsg);
+    safePrint('Sent: $jsonMsg');
+  }
 
-      final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
-      final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
-      User? existingUser = getUserResponse.data;
+  void _sendClearState() {
+    Amplify.Auth.getCurrentUser().then((user) {
+      _send({'action': 'clearState', 'userId': user.userId});
+    }).catchError((e) {
+      safePrint('Error sending clearState: $e');
+    });
+  }
 
-      if (existingUser != null) {
-        final User updatedUser = existingUser.copyWith(
-          online: online,
-          isAvailable: online ? true : true, // Always available unless in a call
-          currentCall: '', // Clear call when online or offline
-          matchmakingLock: '', // Clear lock
-        );
-        final updateRequest = ModelMutations.update<User>(updatedUser);
-        await Amplify.API.mutate(request: updateRequest).response;
-        safePrint('Set user: $userId online: $online, isAvailable: ${updatedUser.isAvailable}, currentCall: ${updatedUser.currentCall}');
-      } else if (online) {
-        final newUser = User(
-          userId: userId,
-          isAvailable: true,
-          online: true,
-          currentCall: null,
-          matchmakingLock: null,
-        );
-        final createRequest = ModelMutations.create<User>(newUser);
-        await Amplify.API.mutate(request: createRequest).response;
-        safePrint('Created user $userId with online: true, isAvailable: true');
+  Future<void> _onWebSocketMessage(dynamic message) async {
+    safePrint('Received: $message');
+    final data = jsonDecode(message as String) as Map<String, dynamic>;
+
+    if (data['message'] == 'Forbidden') return;
+
+    // step 1: clearState ack
+    if (data['action'] == 'stateCleared') {
+      setState(() => _isConnecting = false);
+      _joinMatchmaking();
+      return;
+    }
+
+    // step 2: match payload (we now expect callId + otherUser map)
+    if (data.containsKey('callId')) {
+      final callId = data['callId'] as String;
+      final other = data['otherUser'] as Map<String, dynamic>;
+      final otherName = other['name'] as String;
+      final key = other['profilePictureKey'] as String;
+
+      String? imageUrl;
+      try {
+        // fetch a signed URL for the S3 key
+	final res = await Amplify.Storage.getUrl(path: StoragePath.fromString(key)).result;
+        imageUrl = res.url.toString();
+        safePrint('Fetched image URL: $imageUrl');
+      } catch (e) {
+        safePrint('Failed to fetch image URL for [$key]: $e');
+        imageUrl = null;
       }
-    } catch (e) {
-      safePrint('Error setting online status: $e');
+
+      setState(() {
+        _callId = callId;
+        _matchedUserName = otherName;
+        _matchedUserProfilePicture = imageUrl;
+        _isCallActive = true;
+      });
+      return;
     }
+
+    if (data['action'] == 'leftCall') {
+      Navigator.pop(context);
+      return;
+    }
+
+    safePrint('Unhandled action: ${data['action']}');
   }
 
-  Future<Widget> _getHomeWidget() async {
-    try {
-      final user = await Amplify.Auth.getCurrentUser();
-      final userId = user.userId;
-      final getUserRequest = ModelQueries.get(User.classType, UserModelIdentifier(userId: userId));
-      final getUserResponse = await Amplify.API.query(request: getUserRequest).response;
-      final existingUser = getUserResponse.data;
-
-      if (existingUser != null &&
-          existingUser.name != null &&
-          (existingUser.profile_picture != '' || existingUser.profile_picture != null) &&
-          existingUser.gender != null) {
-        safePrint('User profile complete, routing to call page');
-        return CallPage();
-      } else {
-        safePrint('User profile incomplete or missing, routing to signup');
-        return SignupScreen();
-      }
-    } catch (e) {
-      safePrint('Error determining home widget: $e');
-      return SignupScreen();
-    }
+  void _onWebSocketError(error) {
+    safePrint('WebSocket error: $error');
+    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
+
+  void _onWebSocketDone() {
+    safePrint('WebSocket closed');
+    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
+  }
+
+  void _joinMatchmaking() {
+    if (_isCallActive) return;
+    if (_debounceTimer?.isActive ?? false) return;
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      Amplify.Auth.getCurrentUser().then((user) {
+        _send({'action': 'joinMatchmaking', 'userId': user.userId});
+      }).catchError((e) {
+        safePrint('Error in joinMatchmaking: $e');
+      });
+    });
+  }
+
+  void _leaveCall() {
+    if (_callId == null) {
+      Navigator.pop(context);
+      return;
+    }
+    Amplify.Auth.getCurrentUser().then((user) {
+      _send({
+        'action': 'leaveCall',
+        'userId': user.userId,
+        'callId': _callId
+      });
+    }).catchError((e) {
+      safePrint('Error sending leaveCall: $e');
+    });
+  }
+
+  void _nextOption() => setState(
+      () => currentIndex = (currentIndex + 1) % options.length);
+  void _previousOption() => setState(() =>
+      currentIndex = (currentIndex - 1 + options.length) % options.length);
 
   @override
   Widget build(BuildContext context) {
-    return Authenticator(
-      child: MaterialApp(
-        title: 'Your App Name',
-        theme: ThemeData(primarySwatch: Colors.blue),
-        builder: Authenticator.builder(),
-        home: Builder(
-          builder: (context) => FutureBuilder<Widget>(
-            future: _getHomeWidget(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Scaffold(body: Center(child: CircularProgressIndicator()));
-              }
-              return snapshot.data ?? SignupScreen();
-            },
+    if (_isConnecting) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(Colors.white),
           ),
         ),
+      );
+    }
+    if (!_isCallActive) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: Text(
+            'Finding Match...',
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          if (_matchedUserProfilePicture != null)
+            Positioned.fill(
+              child: Image.network(
+                _matchedUserProfilePicture!,
+                fit: BoxFit.cover,
+              ),
+            ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withOpacity(0.4)),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: Text(
+              _matchedUserName ?? '',
+              style: const TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            right: 20,
+            child: ElevatedButton(
+              onPressed: _leaveCall,
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.red),
+              ),
+              child: const Text(
+                'Leave',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: JoinChannelAudio(channelID: _callId!),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Would you rather',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                              icon: const Icon(Icons.arrow_left),
+                              onPressed: _previousOption),
+                          Expanded(
+                            child: Text(
+                              options[currentIndex],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          IconButton(
+                              icon: const Icon(Icons.arrow_right),
+                              onPressed: _nextOption),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+

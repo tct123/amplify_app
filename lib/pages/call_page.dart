@@ -26,6 +26,7 @@ class _CallPageState extends State<CallPage> {
   Timer? _debounceTimer;
   final bool _debug = true;
 
+  // example “would you rather” options
   final List<String> options = [
     "go skiing or snorkelling?",
     "eat pizza or burgers?",
@@ -40,7 +41,7 @@ class _CallPageState extends State<CallPage> {
     super.initState();
     _connectWebSocket();
 
-    // DEBUG: force joinMatchmaking
+    // DEBUG: auto-join matchmaking after 2s
     Future.delayed(Duration(seconds: 2), () async {
       final user = await Amplify.Auth.getCurrentUser();
       final msg = jsonEncode({
@@ -94,24 +95,27 @@ class _CallPageState extends State<CallPage> {
     safePrint('Received: $message');
     final data = jsonDecode(message as String);
 
-    // Ignore Forbidden
-    if (data['message'] == 'Forbidden') return;
+    // ignore Forbidden responses
+    if (data['message'] == 'Forbidden') {
+      safePrint('Ignoring Forbidden response');
+      return;
+    }
 
-    // NEW: if we see { callId, otherUser } treat as match
+    // --- new: if payload has callId + otherUser, treat as match found ---
     if (data.containsKey('callId') && data.containsKey('otherUser')) {
-      final userMap = data['otherUser'] as Map<String, dynamic>;
+      final other = data['otherUser'] as Map<String, dynamic>;
       setState(() {
-        _isConnecting = false;
-        _isCallActive = true;
+	_isConnecting = false; 
         _callId = data['callId'] as String;
-        _matchedUserName = userMap['name'] as String?;
-        _matchedUserProfilePicture = userMap['profilePicture'] as String?;
+        _matchedUserName = other['name'] as String;
+        _matchedUserProfilePicture = other['profilePicture'] as String;
+        _isCallActive = true;
       });
       return;
     }
 
-    // fallback to action-based
-    final action = data['action'];
+    // fall back to explicit actions
+    final action = data['action'] as String?;
     switch (action) {
       case 'stateCleared':
         setState(() {
@@ -119,22 +123,10 @@ class _CallPageState extends State<CallPage> {
         });
         _joinMatchmaking();
         break;
-
-      case 'matchFound':
-        setState(() {
-          _isConnecting = false;
-          _isCallActive = true;
-          _callId = data['callId'] as String;
-          _matchedUserName = data['matchedUser']['name'] as String;
-          _matchedUserProfilePicture =
-              data['matchedUser']['profilePicture'] as String;
-        });
-        break;
-
       case 'leftCall':
+	_isConnecting = true;
         Navigator.pop(context);
         break;
-
       default:
         safePrint('Unhandled action: $action');
     }
@@ -180,109 +172,11 @@ class _CallPageState extends State<CallPage> {
 
   void _nextOption() =>
       setState(() => currentIndex = (currentIndex + 1) % options.length);
-  void _previousOption() => setState(
-      () => currentIndex = (currentIndex - 1 + options.length) % options.length);
+  void _previousOption() =>
+      setState(() => currentIndex = (currentIndex - 1 + options.length) % options.length);
 
   @override
   Widget build(BuildContext context) {
-    // 1) if call is active, always show it
-    if (_isCallActive) {
-      return Scaffold(
-        body: Stack(
-          children: [
-            if (_matchedUserProfilePicture != null)
-              Positioned.fill(
-                child: Image.network(
-                  _matchedUserProfilePicture!,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(color: Colors.black.withOpacity(0.4)),
-              ),
-            ),
-            Positioned(
-              top: 40,
-              left: 20,
-              child: Text(
-                _matchedUserName ?? '',
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: ElevatedButton(
-                onPressed: _leaveCall,
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Colors.red),
-                ),
-                child: Text(
-                  'Leave',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.center,
-              child: JoinChannelAudio(channelID: _callId!),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 8,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Would you rather',
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(
-                                icon: Icon(Icons.arrow_left),
-                                onPressed: _previousOption),
-                            Expanded(
-                              child: Text(
-                                options[currentIndex],
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                            IconButton(
-                                icon: Icon(Icons.arrow_right),
-                                onPressed: _nextOption),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 2) still waiting on initial clearState?
     if (_isConnecting) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -294,14 +188,110 @@ class _CallPageState extends State<CallPage> {
       );
     }
 
-    // 3) otherwise we're searching
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Text(
-          'Finding Match...',
-          style: TextStyle(color: Colors.white, fontSize: 24),
+    if (!_isCallActive) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text(
+            'Finding Match...',
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
         ),
+      );
+    }
+
+    // matched UI
+    return Scaffold(
+      body: Stack(
+        children: [
+          if (_matchedUserProfilePicture != null)
+            Positioned.fill(
+              child: Image.network(
+                _matchedUserProfilePicture!,
+                fit: BoxFit.cover,
+              ),
+            ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withOpacity(0.4)),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: Text(
+              _matchedUserName ?? '',
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            right: 20,
+            child: ElevatedButton(
+              onPressed: _leaveCall,
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.red),
+              ),
+              child: Text(
+                'Leave',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: JoinChannelAudio(channelID: _callId!),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Would you rather',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                              icon: Icon(Icons.arrow_left),
+                              onPressed: _previousOption),
+                          Expanded(
+                            child: Text(
+                              options[currentIndex],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          IconButton(
+                              icon: Icon(Icons.arrow_right),
+                              onPressed: _nextOption),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
