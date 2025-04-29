@@ -42,6 +42,7 @@ class User extends amplify_core.Model {
   final bool? _online;
   final String? _currentCall;
   final String? _matchmakingLock;
+  final String? _matchmakingTimestamp;
   final List<UserLike>? _likes;
   final List<UserLike>? _likedBy;
   final List<UserMatch>? _matches;
@@ -144,6 +145,10 @@ class User extends amplify_core.Model {
     return _matchmakingLock;
   }
   
+  String? get matchmakingTimestamp {
+    return _matchmakingTimestamp;
+  }
+  
   List<UserLike>? get likes {
     return _likes;
   }
@@ -184,9 +189,9 @@ class User extends amplify_core.Model {
     return _updatedAt;
   }
   
-  const User._internal({required userId, name, age, gender, gender_preference, age_preference, location, aboutMe, radius, pictures, profile_picture, isAvailable, online, currentCall, matchmakingLock, likes, likedBy, matches, matchedBy, dislikes, dislikedBy, callList, called, createdAt, updatedAt}): _userId = userId, _name = name, _age = age, _gender = gender, _gender_preference = gender_preference, _age_preference = age_preference, _location = location, _aboutMe = aboutMe, _radius = radius, _pictures = pictures, _profile_picture = profile_picture, _isAvailable = isAvailable, _online = online, _currentCall = currentCall, _matchmakingLock = matchmakingLock, _likes = likes, _likedBy = likedBy, _matches = matches, _matchedBy = matchedBy, _dislikes = dislikes, _dislikedBy = dislikedBy, _callList = callList, _called = called, _createdAt = createdAt, _updatedAt = updatedAt;
+  const User._internal({required userId, name, age, gender, gender_preference, age_preference, location, aboutMe, radius, pictures, profile_picture, isAvailable, online, currentCall, matchmakingLock, matchmakingTimestamp, likes, likedBy, matches, matchedBy, dislikes, dislikedBy, callList, called, createdAt, updatedAt}): _userId = userId, _name = name, _age = age, _gender = gender, _gender_preference = gender_preference, _age_preference = age_preference, _location = location, _aboutMe = aboutMe, _radius = radius, _pictures = pictures, _profile_picture = profile_picture, _isAvailable = isAvailable, _online = online, _currentCall = currentCall, _matchmakingLock = matchmakingLock, _matchmakingTimestamp = matchmakingTimestamp, _likes = likes, _likedBy = likedBy, _matches = matches, _matchedBy = matchedBy, _dislikes = dislikes, _dislikedBy = dislikedBy, _callList = callList, _called = called, _createdAt = createdAt, _updatedAt = updatedAt;
   
-  factory User({required String userId, String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, String? matchmakingLock, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
+  factory User({required String userId, String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, String? matchmakingLock, String? matchmakingTimestamp, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
     return User._internal(
       userId: userId,
       name: name,
@@ -203,6 +208,7 @@ class User extends amplify_core.Model {
       online: online,
       currentCall: currentCall,
       matchmakingLock: matchmakingLock,
+      matchmakingTimestamp: matchmakingTimestamp,
       likes: likes != null ? List<UserLike>.unmodifiable(likes) : likes,
       likedBy: likedBy != null ? List<UserLike>.unmodifiable(likedBy) : likedBy,
       matches: matches != null ? List<UserMatch>.unmodifiable(matches) : matches,
@@ -236,6 +242,7 @@ class User extends amplify_core.Model {
       _online == other._online &&
       _currentCall == other._currentCall &&
       _matchmakingLock == other._matchmakingLock &&
+      _matchmakingTimestamp == other._matchmakingTimestamp &&
       DeepCollectionEquality().equals(_likes, other._likes) &&
       DeepCollectionEquality().equals(_likedBy, other._likedBy) &&
       DeepCollectionEquality().equals(_matches, other._matches) &&
@@ -269,6 +276,7 @@ class User extends amplify_core.Model {
     buffer.write("online=" + (_online != null ? _online!.toString() : "null") + ", ");
     buffer.write("currentCall=" + "$_currentCall" + ", ");
     buffer.write("matchmakingLock=" + "$_matchmakingLock" + ", ");
+    buffer.write("matchmakingTimestamp=" + "$_matchmakingTimestamp" + ", ");
     buffer.write("createdAt=" + (_createdAt != null ? _createdAt!.format() : "null") + ", ");
     buffer.write("updatedAt=" + (_updatedAt != null ? _updatedAt!.format() : "null"));
     buffer.write("}");
@@ -276,7 +284,7 @@ class User extends amplify_core.Model {
     return buffer.toString();
   }
   
-  User copyWith({String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, String? matchmakingLock, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
+  User copyWith({String? name, int? age, String? gender, String? gender_preference, List<int>? age_preference, UserLocation? location, String? aboutMe, int? radius, List<String>? pictures, String? profile_picture, bool? isAvailable, bool? online, String? currentCall, String? matchmakingLock, String? matchmakingTimestamp, List<UserLike>? likes, List<UserLike>? likedBy, List<UserMatch>? matches, List<UserMatch>? matchedBy, List<UserDislike>? dislikes, List<UserDislike>? dislikedBy, List<Call>? callList, List<Call>? called}) {
     return User._internal(
       userId: userId,
       name: name ?? this.name,
@@ -293,6 +301,7 @@ class User extends amplify_core.Model {
       online: online ?? this.online,
       currentCall: currentCall ?? this.currentCall,
       matchmakingLock: matchmakingLock ?? this.matchmakingLock,
+      matchmakingTimestamp: matchmakingTimestamp ?? this.matchmakingTimestamp,
       likes: likes ?? this.likes,
       likedBy: likedBy ?? this.likedBy,
       matches: matches ?? this.matches,
@@ -318,6 +327,7 @@ class User extends amplify_core.Model {
     ModelFieldValue<bool?>? online,
     ModelFieldValue<String?>? currentCall,
     ModelFieldValue<String?>? matchmakingLock,
+    ModelFieldValue<String?>? matchmakingTimestamp,
     ModelFieldValue<List<UserLike>?>? likes,
     ModelFieldValue<List<UserLike>?>? likedBy,
     ModelFieldValue<List<UserMatch>?>? matches,
@@ -343,6 +353,7 @@ class User extends amplify_core.Model {
       online: online == null ? this.online : online.value,
       currentCall: currentCall == null ? this.currentCall : currentCall.value,
       matchmakingLock: matchmakingLock == null ? this.matchmakingLock : matchmakingLock.value,
+      matchmakingTimestamp: matchmakingTimestamp == null ? this.matchmakingTimestamp : matchmakingTimestamp.value,
       likes: likes == null ? this.likes : likes.value,
       likedBy: likedBy == null ? this.likedBy : likedBy.value,
       matches: matches == null ? this.matches : matches.value,
@@ -374,6 +385,7 @@ class User extends amplify_core.Model {
       _online = json['online'],
       _currentCall = json['currentCall'],
       _matchmakingLock = json['matchmakingLock'],
+      _matchmakingTimestamp = json['matchmakingTimestamp'],
       _likes = json['likes']  is Map
         ? (json['likes']['items'] is List
           ? (json['likes']['items'] as List)
@@ -482,7 +494,7 @@ class User extends amplify_core.Model {
       _updatedAt = json['updatedAt'] != null ? amplify_core.TemporalDateTime.fromString(json['updatedAt']) : null;
   
   Map<String, dynamic> toJson() => {
-    'userId': _userId, 'name': _name, 'age': _age, 'gender': _gender, 'gender_preference': _gender_preference, 'age_preference': _age_preference, 'location': _location?.toJson(), 'aboutMe': _aboutMe, 'radius': _radius, 'pictures': _pictures, 'profile_picture': _profile_picture, 'isAvailable': _isAvailable, 'online': _online, 'currentCall': _currentCall, 'matchmakingLock': _matchmakingLock, 'likes': _likes?.map((UserLike? e) => e?.toJson()).toList(), 'likedBy': _likedBy?.map((UserLike? e) => e?.toJson()).toList(), 'matches': _matches?.map((UserMatch? e) => e?.toJson()).toList(), 'matchedBy': _matchedBy?.map((UserMatch? e) => e?.toJson()).toList(), 'dislikes': _dislikes?.map((UserDislike? e) => e?.toJson()).toList(), 'dislikedBy': _dislikedBy?.map((UserDislike? e) => e?.toJson()).toList(), 'callList': _callList?.map((Call? e) => e?.toJson()).toList(), 'called': _called?.map((Call? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
+    'userId': _userId, 'name': _name, 'age': _age, 'gender': _gender, 'gender_preference': _gender_preference, 'age_preference': _age_preference, 'location': _location?.toJson(), 'aboutMe': _aboutMe, 'radius': _radius, 'pictures': _pictures, 'profile_picture': _profile_picture, 'isAvailable': _isAvailable, 'online': _online, 'currentCall': _currentCall, 'matchmakingLock': _matchmakingLock, 'matchmakingTimestamp': _matchmakingTimestamp, 'likes': _likes?.map((UserLike? e) => e?.toJson()).toList(), 'likedBy': _likedBy?.map((UserLike? e) => e?.toJson()).toList(), 'matches': _matches?.map((UserMatch? e) => e?.toJson()).toList(), 'matchedBy': _matchedBy?.map((UserMatch? e) => e?.toJson()).toList(), 'dislikes': _dislikes?.map((UserDislike? e) => e?.toJson()).toList(), 'dislikedBy': _dislikedBy?.map((UserDislike? e) => e?.toJson()).toList(), 'callList': _callList?.map((Call? e) => e?.toJson()).toList(), 'called': _called?.map((Call? e) => e?.toJson()).toList(), 'createdAt': _createdAt?.format(), 'updatedAt': _updatedAt?.format()
   };
   
   Map<String, Object?> toMap() => {
@@ -501,6 +513,7 @@ class User extends amplify_core.Model {
     'online': _online,
     'currentCall': _currentCall,
     'matchmakingLock': _matchmakingLock,
+    'matchmakingTimestamp': _matchmakingTimestamp,
     'likes': _likes,
     'likedBy': _likedBy,
     'matches': _matches,
@@ -529,6 +542,7 @@ class User extends amplify_core.Model {
   static final ONLINE = amplify_core.QueryField(fieldName: "online");
   static final CURRENTCALL = amplify_core.QueryField(fieldName: "currentCall");
   static final MATCHMAKINGLOCK = amplify_core.QueryField(fieldName: "matchmakingLock");
+  static final MATCHMAKINGTIMESTAMP = amplify_core.QueryField(fieldName: "matchmakingTimestamp");
   static final LIKES = amplify_core.QueryField(
     fieldName: "likes",
     fieldType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.model, ofModelName: 'UserLike'));
@@ -660,6 +674,12 @@ class User extends amplify_core.Model {
     
     modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
       key: User.MATCHMAKINGLOCK,
+      isRequired: false,
+      ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
+    ));
+    
+    modelSchemaDefinition.addField(amplify_core.ModelFieldDefinition.field(
+      key: User.MATCHMAKINGTIMESTAMP,
       isRequired: false,
       ofType: amplify_core.ModelFieldType(amplify_core.ModelFieldTypeEnum.string)
     ));

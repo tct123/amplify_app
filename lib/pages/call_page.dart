@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:amplify_app/pages/join_call_page.dart';
@@ -47,6 +46,7 @@ class _CallPageState extends State<CallPage> {
       final msg = jsonEncode({
         'action': 'joinMatchmaking',
         'userId': user.userId,
+	'timestamp': DateTime.now().toIso8601String(),
       });
       _channel?.sink.add(msg);
       safePrint('DEBUG: forced joinMatchmaking → $msg');
@@ -94,35 +94,44 @@ class _CallPageState extends State<CallPage> {
   Future<void> _onWebSocketMessage(dynamic message) async {
     safePrint('Received: $message');
     final data = jsonDecode(message as String) as Map<String, dynamic>;
+    safePrint('Current state: _isConnecting=$_isConnecting, _isCallActive=$_isCallActive');
 
     if (data['message'] == 'Forbidden') return;
 
-    // step 1: clearState ack
+    // 1) clearState ack
     if (data['action'] == 'stateCleared') {
+      safePrint('Handling stateCleared');
       setState(() => _isConnecting = false);
       _joinMatchmaking();
       return;
     }
 
-    // step 2: match payload (we now expect callId + otherUser map)
+    // 2) match payload (we now expect callId + otherUser map)
     if (data.containsKey('callId')) {
+      safePrint('Handling match with callId');
       final callId = data['callId'] as String;
       final other = data['otherUser'] as Map<String, dynamic>;
+
+      // new: read the presigned URL directly
       final otherName = other['name'] as String;
-      final key = other['profilePictureKey'] as String;
+      final imageUrl = other['profilePictureUrl'] as String?;
 
-
+      safePrint('Using presigned URL: $imageUrl');
 
       setState(() {
         _callId = callId;
         _matchedUserName = otherName;
+        _matchedUserProfilePicture = imageUrl;
         _isCallActive = true;
-	_isConnecting = false;
+        _isConnecting = false;
+        safePrint('Updated state → _isConnecting=$_isConnecting, _isCallActive=$_isCallActive');
       });
       return;
     }
 
+    // 3) leftCall
     if (data['action'] == 'leftCall') {
+      safePrint('Handling leftCall');
       Navigator.pop(context);
       return;
     }
@@ -148,15 +157,27 @@ class _CallPageState extends State<CallPage> {
         _send({'action': 'joinMatchmaking', 'userId': user.userId});
       }).catchError((e) {
         safePrint('Error in joinMatchmaking: $e');
+        setState(() => _isConnecting = false);
       });
+    });
+
+    // Optional timeout: if still connecting in 30s, give up
+    Timer(const Duration(seconds: 30), () {
+      if (_isConnecting && !_isCallActive) {
+        safePrint('Matchmaking timed out');
+        setState(() => _isConnecting = false);
+      }
     });
   }
 
   void _leaveCall() {
-    if (_callId == null) {
-      Navigator.pop(context);
-      return;
-    }
+	  setState(() {
+	  	    _callId = null;
+		    _matchedUserName = null;
+		    _matchedUserProfilePicture;
+		    _isConnecting = true;
+		    _isCallActive = false;
+	  	  });
     Amplify.Auth.getCurrentUser().then((user) {
       _send({
         'action': 'leaveCall',
@@ -188,10 +209,10 @@ class _CallPageState extends State<CallPage> {
     if (!_isCallActive) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: const Center(
+        body: Center(
           child: Text(
-            'Finding Match...',
-            style: TextStyle(color: Colors.white, fontSize: 24),
+            _callId == null ? 'Finding Match...' : 'Failed to join call. Try again.',
+            style: const TextStyle(color: Colors.white, fontSize: 24),
           ),
         ),
       );
@@ -200,11 +221,18 @@ class _CallPageState extends State<CallPage> {
     return Scaffold(
       body: Stack(
         children: [
+          // show the presigned image as background
           if (_matchedUserProfilePicture != null)
             Positioned.fill(
               child: Image.network(
                 _matchedUserProfilePicture!,
                 fit: BoxFit.cover,
+                errorBuilder: (c, e, st) => Center(child: Text('Image load error', style: TextStyle(color: Colors.white))),
+                loadingBuilder: (c, w, lp) => lp == null
+                    ? w
+                    : Center(child: CircularProgressIndicator(value: lp.expectedTotalBytes != null
+                        ? lp.cumulativeBytesLoaded / (lp.expectedTotalBytes ?? 1)
+                        : null)),
               ),
             ),
           Positioned.fill(
