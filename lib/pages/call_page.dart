@@ -43,10 +43,11 @@ class _CallPageState extends State<CallPage> {
     // DEBUG: force joinMatchmaking after 2 seconds
     Future.delayed(const Duration(seconds: 2), () async {
       final user = await Amplify.Auth.getCurrentUser();
+      final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
       final msg = jsonEncode({
         'action': 'joinMatchmaking',
         'userId': user.userId,
-	'timestamp': DateTime.now().toIso8601String(),
+	'timestamp': timestamp,
       });
       _channel?.sink.add(msg);
       safePrint('DEBUG: forced joinMatchmaking → $msg');
@@ -108,7 +109,7 @@ class _CallPageState extends State<CallPage> {
 
     // 2) match payload (we now expect callId + otherUser map)
     if (data.containsKey('callId')) {
-      safePrint('Handling match with callId');
+      safePrint('Handling match with callId: $data["callId"]');
       final callId = data['callId'] as String;
       final other = data['otherUser'] as Map<String, dynamic>;
 
@@ -130,11 +131,18 @@ class _CallPageState extends State<CallPage> {
     }
 
     // 3) leftCall
-    if (data['action'] == 'leftCall') {
-      safePrint('Handling leftCall');
-      Navigator.pop(context);
-      return;
-    }
+if (data['action'] == 'leftCall') {
+  safePrint('Handling leftCall');
+  setState(() {
+    _isCallActive = false;
+    _isConnecting = true;
+    _callId       = null;
+    _matchedUserName = null;
+    _matchedUserProfilePicture = null;
+  });
+  _joinMatchmaking();
+  return;
+}
 
     safePrint('Unhandled action: ${data['action']}');
   }
@@ -149,47 +157,66 @@ class _CallPageState extends State<CallPage> {
     Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
 
-  void _joinMatchmaking() {
-    if (_isCallActive) return;
-    if (_debounceTimer?.isActive ?? false) return;
-    _debounceTimer = Timer(const Duration(seconds: 2), () {
-      Amplify.Auth.getCurrentUser().then((user) {
-        _send({'action': 'joinMatchmaking', 'userId': user.userId});
-      }).catchError((e) {
-        safePrint('Error in joinMatchmaking: $e');
-        setState(() => _isConnecting = false);
-      });
-    });
+void _joinMatchmaking() {
+  print("Call is active: ${_isCallActive.toString()}");
+  if (_isCallActive) return;
+  setState(() {
+    _callId = null;
+    _matchedUserName = null;
+    _matchedUserProfilePicture = null;
+  });
 
-    // Optional timeout: if still connecting in 30s, give up
-    Timer(const Duration(seconds: 30), () {
-      if (_isConnecting && !_isCallActive) {
-        safePrint('Matchmaking timed out');
-        setState(() => _isConnecting = false);
-      }
-    });
-  }
-
-  void _leaveCall() {
-	  setState(() {
-	  	    _callId = null;
-		    _matchedUserName = null;
-		    _matchedUserProfilePicture;
-		    _isConnecting = true;
-		    _isCallActive = false;
-	  	  });
-    Amplify.Auth.getCurrentUser().then((user) {
-      _send({
-        'action': 'leaveCall',
+  Future.delayed(const Duration(seconds: 2), () async {
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
+      final msg = jsonEncode({
+        'action': 'joinMatchmaking',
         'userId': user.userId,
-        'callId': _callId
+        'timestamp': timestamp,
       });
-    }).catchError((e) {
-      safePrint('Error sending leaveCall: $e');
-    });
+      await _sendMessage(msg); // Use the helper method
+    } catch (e) {
+      safePrint('Error in joinMatchmaking: $e');
+    }
+  });
+}
+
+Future<void> _leaveCall() async {
+  final callId = _callId;
+  if (callId == null) {
+    safePrint('❌ leaveCall: no active call to leave');
+    return;
   }
 
-  void _nextOption() => setState(
+  try {
+    final user = await Amplify.Auth.getCurrentUser();
+    final payload = jsonEncode({
+      'action': 'leaveCall',
+      'userId': user.userId,
+      'callId': callId,
+    });
+    await _sendMessage(payload); // Use the helper method
+    setState(() {
+      _isCallActive = false;
+      _isConnecting = true;
+    });
+  } catch (e) {
+    safePrint('Error in leaveCall: $e');
+  }
+}
+Future<void> _sendMessage(String payload) async {
+  try {
+    if (_channel == null) {
+      safePrint('WebSocket channel is null, reconnecting...');
+    }
+    await _channel?.ready;
+    safePrint('Sending payload: $payload');
+    _channel?.sink.add(payload);
+  } catch (e) {
+    safePrint('WebSocket error: $e');
+  }
+}  void _nextOption() => setState(
       () => currentIndex = (currentIndex + 1) % options.length);
   void _previousOption() => setState(() =>
       currentIndex = (currentIndex - 1 + options.length) % options.length);

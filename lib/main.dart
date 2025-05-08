@@ -1,5 +1,6 @@
 import 'package:amplify_app/models/ModelProvider.dart';
 import 'package:amplify_app/pages/call_page.dart';
+import 'package:amplify_app/pages/home_page.dart';
 import 'package:amplify_app/pages/signup_screen.dart';
 import 'package:amplify_app/providers/signup_provider.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
@@ -126,7 +127,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           (existingUser.profile_picture != '' || existingUser.profile_picture != null) &&
           existingUser.gender != null) {
         safePrint('User profile complete, routing to call page');
-        return CallPage();
+        return HomePage();
       } else {
         safePrint('User profile incomplete or missing, routing to signup');
         return SignupScreen();
