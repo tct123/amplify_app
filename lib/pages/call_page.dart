@@ -1,17 +1,15 @@
-// lib/pages/call_page.dart
-
-import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+
+import 'package:amplify_app/pages/home_page.dart';
 import 'package:amplify_app/pages/join_call_page.dart';
 
 class CallPage extends StatefulWidget {
   const CallPage({Key? key}) : super(key: key);
-
   @override
   _CallPageState createState() => _CallPageState();
 }
@@ -20,10 +18,10 @@ class _CallPageState extends State<CallPage> {
   WebSocketChannel? _channel;
   bool _isConnecting = true;
   bool _isCallActive = false;
+  bool _isLeavingCall = false;
   String? _callId;
   String? _matchedUserName;
   String? _matchedUserProfilePicture;
-  Timer? _debounceTimer;
   final bool _debug = true;
 
   final List<String> options = [
@@ -39,311 +37,253 @@ class _CallPageState extends State<CallPage> {
   void initState() {
     super.initState();
     _connectWebSocket();
-
-    // DEBUG: force joinMatchmaking after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () async {
-      final user = await Amplify.Auth.getCurrentUser();
-      final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
-      final msg = jsonEncode({
-        'action': 'joinMatchmaking',
-        'userId': user.userId,
-	'timestamp': timestamp,
-      });
-      _channel?.sink.add(msg);
-      safePrint('DEBUG: forced joinMatchmaking → $msg');
-    });
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     _channel?.sink.close();
     super.dispose();
   }
 
-  void safePrint(String message) {
-    if (_debug) print('${DateTime.now().toIso8601String()}: $message');
+  void safePrint(String msg) {
+    if (_debug) print('${DateTime.now().toIso8601String()}: $msg');
   }
 
-  void _connectWebSocket() {
-    _channel?.sink.close();
-    _channel = WebSocketChannel.connect(
-      Uri.parse('wss://gxwn07m3ma.execute-api.eu-north-1.amazonaws.com/prod/'),
-    );
-    _channel!.stream.listen(
-      _onWebSocketMessage,
-      onError: _onWebSocketError,
-      onDone: _onWebSocketDone,
-    );
-    _sendClearState();
+  Future<void> _connectWebSocket() async {
+    safePrint('→ Initializing WebSocket');
+    try {
+      _channel?.sink.close();
+      _channel = WebSocketChannel.connect(
+        Uri.parse('wss://gxwn07m3ma.execute-api.eu-north-1.amazonaws.com/prod'),
+      );
+      safePrint('→ WebSocket connected');
+
+      // as soon as it's connected, clear state
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _sendClearState();
+      });
+
+      _channel!.stream.listen(
+        _onMessage,
+        onError: (e) {
+          safePrint('WebSocket error: $e');
+          _reconnect();
+        },
+        onDone: () {
+          safePrint('WebSocket closed');
+          _reconnect();
+        },
+      );
+    } catch (e) {
+      safePrint('Error connecting WebSocket: $e');
+      _reconnect();
+    }
   }
 
-  void _send(Map<String, dynamic> msg) {
-    final jsonMsg = jsonEncode(msg);
-    _channel?.sink.add(jsonMsg);
-    safePrint('Sent: $jsonMsg');
+  void _reconnect() {
+    _channel = null;
+    setState(() { _isConnecting = true; });
+    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
 
-  void _sendClearState() {
-    Amplify.Auth.getCurrentUser().then((user) {
-      _send({'action': 'clearState', 'userId': user.userId});
-    }).catchError((e) {
-      safePrint('Error sending clearState: $e');
+  Future<void> _send(Map<String, dynamic> msg) async {
+    final payload = jsonEncode(msg);
+    safePrint('→ Sending: $payload');
+    _channel?.sink.add(payload);
+  }
+
+  void _sendClearState() async {
+    final user = await Amplify.Auth.getCurrentUser();
+    await _send({
+      'action': 'clearState',
+      'userId': user.userId,
     });
   }
 
-  Future<void> _onWebSocketMessage(dynamic message) async {
-    safePrint('Received: $message');
-    final data = jsonDecode(message as String) as Map<String, dynamic>;
-    safePrint('Current state: _isConnecting=$_isConnecting, _isCallActive=$_isCallActive');
+  Future<void> _onMessage(dynamic raw) async {
+    safePrint('← Received raw: $raw');
+    final data = jsonDecode(raw as String) as Map<String, dynamic>;
+    safePrint('← Parsed: $data');
 
-    if (data['message'] == 'Forbidden') return;
+    switch (data['action']) {
+      case 'stateCleared':
+        safePrint('← stateCleared');
+        setState(() => _isConnecting = false);
+        _joinMatchmaking();
+        return;
 
-    // 1) clearState ack
-    if (data['action'] == 'stateCleared') {
-      safePrint('Handling stateCleared');
-      setState(() => _isConnecting = false);
-      _joinMatchmaking();
-      return;
+      case 'leftCall':
+        safePrint('← leftCall ack');
+        if (!mounted) return;
+        setState(() {
+          _isCallActive = false;
+          _isLeavingCall = false;
+          _callId = null;
+          _matchedUserName = null;
+          _matchedUserProfilePicture = null;
+        });
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (_) => false,
+        );
+        return;
+
+      default:
+        if (data.containsKey('callId')) {
+          safePrint('← matched: ${data['callId']}');
+          final other = data['otherUser'] as Map<String, dynamic>;
+          setState(() {
+            _callId                    = data['callId'] as String;
+            _matchedUserName           = other['name'] as String;
+            _matchedUserProfilePicture = other['profilePictureUrl'] as String?;
+            _isCallActive              = true;
+          });
+          return;
+        }
+        safePrint('← Unhandled action: ${data['action']}');
     }
-
-    // 2) match payload (we now expect callId + otherUser map)
-    if (data.containsKey('callId')) {
-      safePrint('Handling match with callId: $data["callId"]');
-      final callId = data['callId'] as String;
-      final other = data['otherUser'] as Map<String, dynamic>;
-
-      // new: read the presigned URL directly
-      final otherName = other['name'] as String;
-      final imageUrl = other['profilePictureUrl'] as String?;
-
-      safePrint('Using presigned URL: $imageUrl');
-
-      setState(() {
-        _callId = callId;
-        _matchedUserName = otherName;
-        _matchedUserProfilePicture = imageUrl;
-        _isCallActive = true;
-        _isConnecting = false;
-        safePrint('Updated state → _isConnecting=$_isConnecting, _isCallActive=$_isCallActive');
-      });
-      return;
-    }
-
-    // 3) leftCall
-if (data['action'] == 'leftCall') {
-  safePrint('Handling leftCall');
-  setState(() {
-    _isCallActive = false;
-    _isConnecting = true;
-    _callId       = null;
-    _matchedUserName = null;
-    _matchedUserProfilePicture = null;
-  });
-  _joinMatchmaking();
-  return;
-}
-
-    safePrint('Unhandled action: ${data['action']}');
   }
 
-  void _onWebSocketError(error) {
-    safePrint('WebSocket error: $error');
-    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
-  }
-
-  void _onWebSocketDone() {
-    safePrint('WebSocket closed');
-    Future.delayed(const Duration(seconds: 5), _connectWebSocket);
-  }
-
-void _joinMatchmaking() {
-  print("Call is active: ${_isCallActive.toString()}");
-  if (_isCallActive) return;
-  setState(() {
-    _callId = null;
-    _matchedUserName = null;
-    _matchedUserProfilePicture = null;
-  });
-
-  Future.delayed(const Duration(seconds: 2), () async {
-    try {
+  void _joinMatchmaking() {
+    if (_isCallActive || _isLeavingCall) return;
+    setState(() { _callId = null; });
+    Future.delayed(const Duration(seconds: 1), () async {
       final user = await Amplify.Auth.getCurrentUser();
-      final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
-      final msg = jsonEncode({
-        'action': 'joinMatchmaking',
-        'userId': user.userId,
+      final timestamp = DateTime.now()
+          .toUtc()
+          .toIso8601String()
+          .replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
+      await _send({
+        'action':    'joinMatchmaking',
+        'userId':    user.userId,
         'timestamp': timestamp,
       });
-      await _sendMessage(msg); // Use the helper method
-    } catch (e) {
-      safePrint('Error in joinMatchmaking: $e');
-    }
-  });
-}
-
-Future<void> _leaveCall() async {
-  final callId = _callId;
-  if (callId == null) {
-    safePrint('❌ leaveCall: no active call to leave');
-    return;
+      safePrint('→ joinMatchmaking sent');
+    });
   }
 
-  try {
+  Future<void> _leaveCall() async {
+    if (_callId == null) {
+      // navigate without returning its future
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLeavingCall = true;
+    });
+    await Future.delayed(const Duration(seconds: 1));
+
     final user = await Amplify.Auth.getCurrentUser();
-    final payload = jsonEncode({
+    await _send({
       'action': 'leaveCall',
       'userId': user.userId,
-      'callId': callId,
+      'callId': _callId,
     });
-    await _sendMessage(payload); // Use the helper method
-    setState(() {
-      _isCallActive = false;
-      _isConnecting = true;
+
+    // fallback if no ack
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _isLeavingCall) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (_) => false,
+        );
+      }
     });
-  } catch (e) {
-    safePrint('Error in leaveCall: $e');
   }
-}
-Future<void> _sendMessage(String payload) async {
-  try {
-    if (_channel == null) {
-      safePrint('WebSocket channel is null, reconnecting...');
-    }
-    await _channel?.ready;
-    safePrint('Sending payload: $payload');
-    _channel?.sink.add(payload);
-  } catch (e) {
-    safePrint('WebSocket error: $e');
-  }
-}  void _nextOption() => setState(
-      () => currentIndex = (currentIndex + 1) % options.length);
-  void _previousOption() => setState(() =>
-      currentIndex = (currentIndex - 1 + options.length) % options.length);
+
+  void _nextOption() => setState(() => currentIndex = (currentIndex + 1) % options.length);
+  void _prevOption() => setState(() => currentIndex = (currentIndex - 1 + options.length) % options.length);
 
   @override
   Widget build(BuildContext context) {
-    if (_isConnecting) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation(Colors.white),
-          ),
-        ),
-      );
-    }
-    if (!_isCallActive) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Text(
-            _callId == null ? 'Finding Match...' : 'Failed to join call. Try again.',
-            style: const TextStyle(color: Colors.white, fontSize: 24),
-          ),
-        ),
-      );
-    }
+    if (_isConnecting) return Scaffold(
+      backgroundColor: Colors.black,
+      body: const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+    if (_isLeavingCall) return Scaffold(
+      backgroundColor: Colors.black,
+      body: const Center(child: Text('Leaving call...', style: TextStyle(color: Colors.white, fontSize: 24))),
+    );
+    if (!_isCallActive) return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(child: Text(
+        _callId == null ? '''
+Wu wei (無為)
+Means “effortless action”. The art of not forcing anything. You are who you are and they will be who they will be. You like what you like and they will like what they will like. You might not be what they like and they might not be what you like. Some people like cats, some people like dogs. You can’t be a cat and a dog. You can’t be red and blue. 
+
+Look for the path of least resistance. The conversation of least resistance.
+With the right person, it’s easier, feels more natural, less force is needed. 
+
+Don’t try to be someone else's match, try to find yours.
+''' : 'Failed to join call. Try again.',
+        style: const TextStyle(color: Colors.white, fontSize: 10),
+	textAlign: TextAlign.center,
+      )
+	      ),
+    );
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // show the presigned image as background
-          if (_matchedUserProfilePicture != null)
-            Positioned.fill(
-              child: Image.network(
-                _matchedUserProfilePicture!,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, st) => Center(child: Text('Image load error', style: TextStyle(color: Colors.white))),
-                loadingBuilder: (c, w, lp) => lp == null
-                    ? w
-                    : Center(child: CircularProgressIndicator(value: lp.expectedTotalBytes != null
-                        ? lp.cumulativeBytesLoaded / (lp.expectedTotalBytes ?? 1)
-                        : null)),
-              ),
-            ),
+      body: Stack(children: [
+        if (_matchedUserProfilePicture != null)
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(color: Colors.black.withOpacity(0.4)),
+            child: Image.network(
+              _matchedUserProfilePicture!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Center(child: Text('Image load error', style: TextStyle(color: Colors.white))),
+              loadingBuilder: (_, w, lp) => lp == null
+                  ? w
+                  : Center(child: CircularProgressIndicator(
+                      value: lp.expectedTotalBytes != null
+                          ? lp.cumulativeBytesLoaded / (lp.expectedTotalBytes!)
+                          : null,
+                    )),
             ),
           ),
-          Positioned(
-            top: 40,
-            left: 20,
-            child: Text(
-              _matchedUserName ?? '',
-              style: const TextStyle(
-                fontSize: 24,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(color: Colors.black.withOpacity(0.4)),
+          ),
+        ),
+        Positioned(top: 40, left: 20,
+          child: Text(_matchedUserName ?? '',
+            style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold))),
+        Positioned(top: 40, right: 20,
+          child: ElevatedButton(
+            onPressed: _leaveCall,
+            style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
+            child: const Text('Leave', style: TextStyle(color: Colors.white)),
+          ),
+        ),
+        Align(alignment: Alignment.center, child: JoinChannelAudio(channelID: _callId!)),
+        Align(alignment: Alignment.bottomCenter, child: Padding(
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              padding: const EdgeInsets.all(20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Would you rather', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  IconButton(icon: const Icon(Icons.arrow_left), onPressed: _prevOption),
+                  Expanded(child: Text(options[currentIndex], textAlign: TextAlign.center, style: const TextStyle(fontSize: 16))),
+                  IconButton(icon: const Icon(Icons.arrow_right), onPressed: _nextOption),
+                ]),
+              ]),
             ),
           ),
-          Positioned(
-            top: 40,
-            right: 20,
-            child: ElevatedButton(
-              onPressed: _leaveCall,
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.red),
-              ),
-              child: const Text(
-                'Leave',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.center,
-            child: JoinChannelAudio(channelID: _callId!),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 40),
-              child: Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                elevation: 8,
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Would you rather',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.arrow_left),
-                              onPressed: _previousOption),
-                          Expanded(
-                            child: Text(
-                              options[currentIndex],
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ),
-                          IconButton(
-                              icon: const Icon(Icons.arrow_right),
-                              onPressed: _nextOption),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        )),
+      ]),
     );
   }
 }

@@ -154,7 +154,7 @@ packages:
     source: hosted
     version: "0.7.6"
   aws_signature_v4:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: aws_signature_v4
       sha256: d9ff6cbc794871a91c83423771906a48f2bd4e2e1c727feb944b5f1bc621c858
