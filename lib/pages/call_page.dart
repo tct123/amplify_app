@@ -219,7 +219,7 @@ Wu wei (無為)
 Means “effortless action”. The art of not forcing anything. You are who you are and they will be who they will be. You like what you like and they will like what they will like. You might not be what they like and they might not be what you like. Some people like cats, some people like dogs. You can’t be a cat and a dog. You can’t be red and blue. 
 
 Look for the path of least resistance. The conversation of least resistance.
-With the right person, it’s easier, feels more natural, less force is needed. 
+With the right person, it’s easier, feels more natural, less forced. 
 
 Don’t try to be someone else's match, try to find yours.
 ''' : 'Failed to join call. Try again.',

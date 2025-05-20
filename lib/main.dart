@@ -143,7 +143,36 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return Authenticator(
       child: MaterialApp(
         title: 'Your App Name',
-        theme: ThemeData(primarySwatch: Colors.blue),
+        theme:ThemeData(
+          // iOS system blue
+          primaryColor: const Color(0xFF007AFF),
+          // iOS green accent
+	  colorScheme: const ColorScheme.light(
+            primary: Color(0xFF007AFF),
+            secondary: Color(0xFF34C759),
+          ),
+          scaffoldBackgroundColor: Colors.white,
+          // custom blue swatch for Material widgets
+          primarySwatch: const MaterialColor(
+            0xFF007AFF,
+            <int, Color>{
+              50: Color(0xFFE6F0FF),
+              100: Color(0xFFB3D1FF),
+              200: Color(0xFF80B1FF),
+              300: Color(0xFF4D92FF),
+              400: Color(0xFF266EFF),
+              500: Color(0xFF007AFF),
+              600: Color(0xFF0073F0),
+              700: Color(0xFF0067D1),
+              800: Color(0xFF005AB2),
+              900: Color(0xFF004680),
+            },
+          ),
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            selectedItemColor: const Color(0xFF007AFF),
+            unselectedItemColor: Colors.grey[400],
+          ),
+        ), 
         builder: Authenticator.builder(),
         home: Builder(
           builder: (context) => FutureBuilder<Widget>(

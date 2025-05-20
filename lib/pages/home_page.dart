@@ -1,30 +1,59 @@
-// lib/pages/home_page.dart
 
 import 'package:flutter/material.dart';
-import 'call_page.dart';
+import 'talk_page.dart';
+import 'matches_page.dart';
+import 'profile_page.dart';
+import 'settings_page.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+	const HomePage({ Key? key }) : super(key: key);
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+	
+  int _selectedIndex = 0;
+  static final List<Widget> _pages = <Widget>[
+    TalkPage(),
+    MatchesPage(),
+    ProfilePage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Welcome'),
-        centerTitle: true,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
       ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CallPage()),
-            );
-          },
-          child: const Text('Find a match'),
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Talk',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Matches',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
 }
+
 
