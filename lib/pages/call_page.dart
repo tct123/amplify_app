@@ -58,10 +58,8 @@ class _CallPageState extends State<CallPage> {
       );
       safePrint('→ WebSocket connected');
 
-      // as soon as it's connected, clear state
-      Future.delayed(const Duration(milliseconds: 200), () {
-        _sendClearState();
-      });
+      // clear state shortly after connect
+      Future.delayed(const Duration(milliseconds: 200), _sendClearState);
 
       _channel!.stream.listen(
         _onMessage,
@@ -82,7 +80,7 @@ class _CallPageState extends State<CallPage> {
 
   void _reconnect() {
     _channel = null;
-    setState(() { _isConnecting = true; });
+    setState(() => _isConnecting = true);
     Future.delayed(const Duration(seconds: 5), _connectWebSocket);
   }
 
@@ -107,13 +105,10 @@ class _CallPageState extends State<CallPage> {
 
     switch (data['action']) {
       case 'stateCleared':
-        safePrint('← stateCleared');
         setState(() => _isConnecting = false);
         _joinMatchmaking();
         return;
-
       case 'leftCall':
-        safePrint('← leftCall ack');
         if (!mounted) return;
         setState(() {
           _isCallActive = false;
@@ -128,44 +123,39 @@ class _CallPageState extends State<CallPage> {
           (_) => false,
         );
         return;
-
       default:
         if (data.containsKey('callId')) {
-          safePrint('← matched: ${data['callId']}');
           final other = data['otherUser'] as Map<String, dynamic>;
           setState(() {
-            _callId                    = data['callId'] as String;
-            _matchedUserName           = other['name'] as String;
+            _callId = data['callId'] as String;
+            _matchedUserName = other['name'] as String;
             _matchedUserProfilePicture = other['profilePictureUrl'] as String?;
-            _isCallActive              = true;
+            _isCallActive = true;
           });
           return;
         }
-        safePrint('← Unhandled action: ${data['action']}');
     }
   }
 
   void _joinMatchmaking() {
     if (_isCallActive || _isLeavingCall) return;
-    setState(() { _callId = null; });
+    setState(() => _callId = null);
     Future.delayed(const Duration(seconds: 1), () async {
       final user = await Amplify.Auth.getCurrentUser();
       final timestamp = DateTime.now()
           .toUtc()
           .toIso8601String()
-          .replaceAll(RegExp(r'\.\d{6}Z$'), 'Z');
+          .replaceAll(RegExp(r'\.\d{6}Z\$'), 'Z');
       await _send({
-        'action':    'joinMatchmaking',
-        'userId':    user.userId,
+        'action': 'joinMatchmaking',
+        'userId': user.userId,
         'timestamp': timestamp,
       });
-      safePrint('→ joinMatchmaking sent');
     });
   }
 
   Future<void> _leaveCall() async {
     if (_callId == null) {
-      // navigate without returning its future
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
@@ -174,9 +164,7 @@ class _CallPageState extends State<CallPage> {
       return;
     }
 
-    setState(() {
-      _isLeavingCall = true;
-    });
+    setState(() => _isLeavingCall = true);
     await Future.delayed(const Duration(seconds: 1));
 
     final user = await Amplify.Auth.getCurrentUser();
@@ -186,7 +174,6 @@ class _CallPageState extends State<CallPage> {
       'callId': _callId,
     });
 
-    // fallback if no ack
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted && _isLeavingCall) {
         Navigator.pushAndRemoveUntil(
@@ -203,87 +190,164 @@ class _CallPageState extends State<CallPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isConnecting) return Scaffold(
-      backgroundColor: Colors.black,
-      body: const Center(child: CircularProgressIndicator(color: Colors.white)),
-    );
-    if (_isLeavingCall) return Scaffold(
-      backgroundColor: Colors.black,
-      body: const Center(child: Text('Leaving call...', style: TextStyle(color: Colors.white, fontSize: 24))),
-    );
-    if (!_isCallActive) return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(child: Text(
-        _callId == null ? '''
-Wu wei (無為)
-Means “effortless action”. The art of not forcing anything. You are who you are and they will be who they will be. You like what you like and they will like what they will like. You might not be what they like and they might not be what you like. Some people like cats, some people like dogs. You can’t be a cat and a dog. You can’t be red and blue. 
+    // Connecting
+    if (_isConnecting) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Leaving
+    if (_isLeavingCall) {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            'Leaving call...',
+            style: TextStyle(fontSize: 24),
+          ),
+        ),
+      );
+    }
+        // Wu Wei quote screen
+    if (!_isCallActive) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: BackButton(onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (_) => false,
+            );
+          }),
+          title: const Text(''),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left:24.0, right: 24.0, bottom:24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('searching', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                const SizedBox(height: 16),
+                CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                const SizedBox(height: 24),
+                SingleChildScrollView(
+                  child: Text(
+                    _callId == null
+                        ? '''Wu wei (無為)
+Means “effortless action”. The art of not forcing anything. You are who you are and they will be who they will be. You like what you like and they will like what they will like. You might not be what they like and they might not be what you like. Some people like cats, some people like dogs. You can’t be a cat and a dog. You can’t be red and blue.
 
 Look for the path of least resistance. The conversation of least resistance.
-With the right person, it’s easier, feels more natural, less forced. 
+With the right person, it’s easier, feels more natural, less forced.
 
-Don’t try to be someone else's match, try to find yours.
-''' : 'Failed to join call. Try again.',
-        style: const TextStyle(color: Colors.white, fontSize: 10),
-	textAlign: TextAlign.center,
-      )
-	      ),
-    );
+Don’t try to be someone else's match, try to find yours.'''
+                        : 'Failed to join call. Try again.',
+                    style: const TextStyle(fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
+    // Active call UI
     return Scaffold(
-      body: Stack(children: [
-        if (_matchedUserProfilePicture != null)
+      body: Stack(
+        children: [
+          if (_matchedUserProfilePicture != null)
+            Positioned.fill(
+              child: Image.network(
+                _matchedUserProfilePicture!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Center(
+                  child: Text(
+                    'Image load error',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                loadingBuilder: (_, w, lp) => lp == null
+                    ? w
+                    : Center(
+                        child: CircularProgressIndicator(
+                          value: lp.expectedTotalBytes != null
+                              ? lp.cumulativeBytesLoaded / (lp.expectedTotalBytes!)
+                              : null,
+                        ),
+                      ),
+              ),
+            ),
           Positioned.fill(
-            child: Image.network(
-              _matchedUserProfilePicture!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Center(child: Text('Image load error', style: TextStyle(color: Colors.white))),
-              loadingBuilder: (_, w, lp) => lp == null
-                  ? w
-                  : Center(child: CircularProgressIndicator(
-                      value: lp.expectedTotalBytes != null
-                          ? lp.cumulativeBytesLoaded / (lp.expectedTotalBytes!)
-                          : null,
-                    )),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withOpacity(0.4)),
             ),
           ),
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(color: Colors.black.withOpacity(0.4)),
-          ),
-        ),
-        Positioned(top: 40, left: 20,
-          child: Text(_matchedUserName ?? '',
-            style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold))),
-        Positioned(top: 40, right: 20,
-          child: ElevatedButton(
-            onPressed: _leaveCall,
-            style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.red)),
-            child: const Text('Leave', style: TextStyle(color: Colors.white)),
-          ),
-        ),
-        Align(alignment: Alignment.center, child: JoinChannelAudio(channelID: _callId!)),
-        Align(alignment: Alignment.bottomCenter, child: Padding(
-          padding: const EdgeInsets.only(bottom: 40),
-          child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 8,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              padding: const EdgeInsets.all(20),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Text('Would you rather', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  IconButton(icon: const Icon(Icons.arrow_left), onPressed: _prevOption),
-                  Expanded(child: Text(options[currentIndex], textAlign: TextAlign.center, style: const TextStyle(fontSize: 16))),
-                  IconButton(icon: const Icon(Icons.arrow_right), onPressed: _nextOption),
-                ]),
-              ]),
+          Positioned(
+            top: 40,
+            left: 20,
+            child: Text(
+              _matchedUserName ?? '',
+              style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
-        )),
-      ]),
+          Positioned(
+            top: 40,
+            right: 20,
+            child: ElevatedButton(
+              onPressed: _leaveCall,
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.red),
+              ),
+              child: Text('Leave', style: TextStyle(color: Colors.white)),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: JoinChannelAudio(channelID: _callId!),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Would you rather', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(icon: Icon(Icons.arrow_left), onPressed: _prevOption),
+                          Expanded(
+                            child: Text(
+                              options[currentIndex],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          IconButton(icon: Icon(Icons.arrow_right), onPressed: _nextOption),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
