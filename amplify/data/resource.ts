@@ -1,6 +1,5 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { filterUsersFunctionHandler } from '../functions/filter-users/resource';
-import { matchUsers } from '../functions/match-users/resource';
 
 const schema = a.schema({
   User: a.model({
@@ -21,6 +20,8 @@ const schema = a.schema({
     isAvailable: a.boolean().default('true'),
     online: a.boolean().default('false'), // New field
     currentCall: a.string(),
+    matchmakingLock: a.string(),
+    matchmakingTimestamp: a.string(),
     // Many-to-many relationships via join models.
     likes: a.hasMany('UserLike', 'likerId'),
     likedBy: a.hasMany('UserLike', 'likedId'),
@@ -113,20 +114,6 @@ const schema = a.schema({
     .authorization(allow => [allow.authenticated()])  // Specify who can access this query.
     .handler(a.handler.function(filterUsersFunctionHandler)),
 
-    matchUsers: a.mutation()
-    .arguments({ userId: a.id().required() })
-    .returns(a.customType({
-      callId: a.id(),
-      matchedUser: a.customType({
-        userId: a.id().required(),
-        name: a.string().required(),
-        profilePicture: a.string(),
-      }),
-      status: a.string(),
-      error: a.string(),
-    }))
-    .authorization(allow => [allow.authenticated()])
-    .handler(a.handler.function(matchUsers)),
 });
 
 export type Schema = ClientSchema<typeof schema>;
